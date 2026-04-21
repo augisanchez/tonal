@@ -16,6 +16,8 @@ export interface FrameAnalysis {
   maxZone: number;
   /** Rough Kelvin estimate, rounded to nearest 100K. */
   kelvin: number;
+  /** log2 of the scene's median linear luminance. Feeds scene-EV estimation. */
+  medianLog: number;
 }
 
 interface Args {
@@ -398,7 +400,10 @@ export function useFrameAnalysis({
       const now = performance.now();
       const throttleOK = now - lastCommitRef.current >= COMMIT_INTERVAL_MS;
 
-      if (!zoneSetChanged && !snapPosChanged) return;
+      // Commit if zones changed immediately, or if the throttle window elapsed
+      // (so scene brightness / recommendations refresh even when marker positions
+      // haven't moved).
+      void snapPosChanged;
       if (!zoneSetChanged && !throttleOK) return;
 
       // Commit: update locks and emit state
@@ -433,6 +438,7 @@ export function useFrameAnalysis({
         minZone: minCellZone,
         maxZone: maxCellZone,
         kelvin,
+        medianLog,
       });
     };
 

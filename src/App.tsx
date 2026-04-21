@@ -1,8 +1,11 @@
+import { useMemo } from 'react';
 import { useTonalStore } from './store/useTonalStore';
 import { findFormat } from './data/formats';
+import { FILM_STOCKS } from './data/filmStocks';
 import { deriveZoneMarkers } from './hooks/useZoneEngine';
 import { useCamera } from './hooks/useCamera';
 import { useFrameAnalysis } from './hooks/useFrameAnalysis';
+import { computeExposureRecommendation } from './hooks/useExposureRecommendation';
 import { PreviewArea } from './components/PreviewArea';
 import { ZoneMarker } from './components/ZoneMarker';
 import { ClippingOverlay } from './components/ClippingOverlay';
@@ -19,14 +22,14 @@ function fovZoom(focalLength: number, standardFL: number): number {
   return Math.max(1, focalLength / standardFL);
 }
 
-/** Formats are stored in native (landscape) orientation. Phone is portrait,
- *  so aspects ≥ 1 invert for the viewfinder. */
 function toPortraitAspect(nativeAspect: number): number {
   return nativeAspect >= 1 ? 1 / nativeAspect : nativeAspect;
 }
 
 export default function App() {
   const film = useTonalStore((s) => s.selectedFilm);
+  const aperture = useTonalStore((s) => s.aperture);
+  const shutter = useTonalStore((s) => s.shutter);
   const expComp = useTonalStore((s) => s.expComp);
   const formatKey = useTonalStore((s) => s.format);
   const aspectId = useTonalStore((s) => s.aspectRatioId);
@@ -35,6 +38,9 @@ export default function App() {
   const highlightWarning = useTonalStore((s) => s.highlightWarningEnabled);
   const isFrozen = useTonalStore((s) => s.isFrozen);
   const toggleFrozen = useTonalStore((s) => s.toggleFrozen);
+  const isApertureLocked = useTonalStore((s) => s.isApertureLocked);
+  const isShutterLocked = useTonalStore((s) => s.isShutterLocked);
+  const isIsoLocked = useTonalStore((s) => s.isIsoLocked);
 
   const fmt = findFormat(formatKey);
   const aspectOpt = fmt.aspects.find((a) => a.id === aspectId) ?? fmt.aspects[0];
@@ -54,6 +60,28 @@ export default function App() {
     active: !isFrozen,
   });
 
+  const availableISOs = useMemo(
+    () =>
+      FILM_STOCKS.filter(
+        (f) => f.manufacturer === film.manufacturer && f.film === film.film,
+      )
+        .map((f) => f.ei)
+        .sort((a, b) => a - b),
+    [film.manufacturer, film.film],
+  );
+
+  const rec = computeExposureRecommendation({
+    aperture,
+    shutter,
+    iso: film.ei,
+    expComp,
+    medianLog: analysis?.medianLog ?? null,
+    apertureLocked: isApertureLocked,
+    shutterLocked: isShutterLocked,
+    isoLocked: isIsoLocked,
+    availableISOs,
+  });
+
   const zones = deriveZoneMarkers(film, expComp, analysis);
 
   return (
@@ -67,18 +95,19 @@ export default function App() {
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
-        {/* Top bar — fixed height */}
         <header className="shrink-0 flex items-start justify-between px-6 pt-2 pb-1">
           <ShadowWarningButton />
           <EVDisplay
             kelvin={analysis?.kelvin ?? 5500}
             sceneDRStops={analysis?.sceneDRStops ?? null}
             filmDRStops={film.totalDR}
+            sceneEV={rec.sceneEV}
+            deltaStops={rec.deltaStops}
+            mode={rec.mode}
           />
           <HighlightWarningButton />
         </header>
 
-        {/* Preview — fills whatever vertical space is left */}
         <section className="flex-1 min-h-0 flex items-center justify-center px-6 py-2">
           <PreviewArea
             videoRef={videoRef}
@@ -105,21 +134,17 @@ export default function App() {
           </PreviewArea>
         </section>
 
-        {/* Preset dots — fixed height */}
         <div className="shrink-0 flex items-center justify-center gap-2 py-1" aria-hidden>
           <span className="w-2 h-2 rounded-full bg-ink" />
           <span className="w-2 h-2 rounded-full bg-grey-200" />
           <span className="text-[10px] text-grey-300 pl-1">+</span>
         </div>
 
-        {/* Controls — fixed height, never shrinks.
-            ISO slider only renders when the current film group has >1 EI variant
-            (digital always; push/pull films like Tri-X 400; hidden for box-speed-only films). */}
         <section className="shrink-0 px-6 flex flex-col gap-2 pb-4">
           <FilmInfoBar />
-          <ApertureSlider />
-          <ShutterSlider />
-          <IsoSlider />
+          <ApertureSlider effectiveValue={rec.aperture} isAuto={!isApertureLocked} />
+          <ShutterSlider effectiveValue={rec.shutter} isAuto={!isShutterLocked} />
+          <IsoSlider effectiveValue={rec.iso} isAuto={!isIsoLocked} />
           <ExpCompSlider />
         </section>
       </div>

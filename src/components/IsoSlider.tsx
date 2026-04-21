@@ -2,13 +2,17 @@ import { useMemo, useState } from 'react';
 import { useTonalStore } from '../store/useTonalStore';
 import { FILM_STOCKS } from '../data/filmStocks';
 import { TickSlider } from './TickSlider';
+import { AutoBadge } from './AutoBadge';
 
-/** Main-screen ISO slider. Only meaningful when the current film group has
- *  multiple EI variants — which is true for Digital (50..25600) and for
- *  pushed/pulled film stocks like Tri-X 400 (400, 800, 1600, 3200). */
-export function IsoSlider() {
+interface IsoSliderProps {
+  effectiveValue: number;
+  isAuto: boolean;
+}
+
+export function IsoSlider({ effectiveValue, isAuto }: IsoSliderProps) {
   const film = useTonalStore((s) => s.selectedFilm);
   const setISO = useTonalStore((s) => s.setISO);
+  const setIsoLocked = useTonalStore((s) => s.setIsoLocked);
 
   const eis = useMemo(() => {
     return FILM_STOCKS.filter(
@@ -18,13 +22,11 @@ export function IsoSlider() {
       .sort((a, b) => a - b);
   }, [film.manufacturer, film.film]);
 
-  const idx = eis.indexOf(film.ei);
-  const safeIndex = idx >= 0 ? idx : 0;
+  const effectiveIndex = Math.max(0, eis.indexOf(effectiveValue));
   const [scrub, setScrub] = useState<number | null>(null);
-  const displayIndex = scrub != null ? Math.round(scrub) : safeIndex;
-  const displayValue = eis[displayIndex] ?? film.ei;
+  const displayIndex = scrub != null ? Math.round(scrub) : effectiveIndex;
+  const displayValue = eis[displayIndex] ?? effectiveValue;
 
-  // If there's only one EI (e.g. a film rated only at box speed) there's nothing to slide.
   if (eis.length <= 1) return null;
 
   return (
@@ -32,16 +34,18 @@ export function IsoSlider() {
       <div className="absolute inset-x-6 top-1/2 -translate-y-1/2">
         <TickSlider
           count={eis.length}
-          index={safeIndex}
+          index={effectiveIndex}
           onChange={(i) => {
             setScrub(null);
             setISO(eis[i]);
           }}
           onScrub={setScrub}
+          onDoubleTap={() => setIsoLocked(false)}
         />
       </div>
-      <div className="bg-white px-3 relative z-[1] text-[24px] leading-[22px] tracking-tight tabular-nums">
-        ISO {displayValue}
+      <div className="bg-white px-3 relative z-[1] flex items-baseline gap-1.5 text-[24px] leading-[22px] tracking-tight tabular-nums">
+        {isAuto && <AutoBadge />}
+        <span>ISO {displayValue}</span>
       </div>
     </div>
   );

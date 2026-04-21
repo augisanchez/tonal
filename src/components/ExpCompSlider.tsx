@@ -16,6 +16,8 @@ function nearestIndex(v: number): number {
   return best;
 }
 
+const ZERO_INDEX = nearestIndex(0);
+
 export function ExpCompSlider() {
   const expComp = useTonalStore((s) => s.expComp);
   const setExpComp = useTonalStore((s) => s.setExpComp);
@@ -58,6 +60,7 @@ export function ExpCompSlider() {
             setExpComp(EXP_COMP_STEPS[i]);
           }}
           onScrub={setScrub}
+          onDoubleTap={() => setExpComp(EXP_COMP_STEPS[ZERO_INDEX])}
           showCenterMarker
         />
       </div>

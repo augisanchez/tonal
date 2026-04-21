@@ -3,79 +3,118 @@ import { useEffect, useRef } from 'react';
 interface TickSliderProps {
   /** Total number of tick positions. */
   count: number;
-  /** Current index (can be fractional while dragging). */
+  /** Current visual index. Can change underneath (e.g. meter recommendation) without disrupting an in-flight drag. */
   index: number;
-  /** Every `majorEvery` ticks are slightly taller. */
-  majorEvery?: number;
-  /** Called with a snapped integer index on release. */
+  /** Called with a snapped integer index when the user releases a drag. */
   onChange: (index: number) => void;
-  /** Called continuously while dragging (fractional). */
+  /** Called continuously during a drag (fractional index). */
   onScrub?: (index: number) => void;
-  /** Optional center marker (for exposure compensation). */
+  /** Called when the user double-taps the slider (used for reset/auto). */
+  onDoubleTap?: () => void;
   showCenterMarker?: boolean;
   className?: string;
 }
+
+const DRAG_THRESHOLD_PX = 6;
+const DOUBLE_TAP_MS = 300;
 
 export function TickSlider({
   count,
   index,
   onChange,
   onScrub,
+  onDoubleTap,
   showCenterMarker = false,
   className = '',
 }: TickSliderProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const dragging = useRef(false);
+
+  // Refs for values that listeners need to see latest of, without rebinding.
+  const indexRef = useRef(index);
+  indexRef.current = index;
+  const countRef = useRef(count);
+  countRef.current = count;
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const onScrubRef = useRef(onScrub);
+  onScrubRef.current = onScrub;
+  const onDoubleTapRef = useRef(onDoubleTap);
+  onDoubleTapRef.current = onDoubleTap;
 
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
 
+    let dragging = false;
+    let moved = false;
     let startX = 0;
     let startIndex = 0;
-    let currentIndex = index;
+    let currentIndex = 0;
+    let lastTapTs = 0;
 
-    const handleStart = (clientX: number) => {
-      dragging.current = true;
+    const begin = (clientX: number) => {
+      dragging = true;
+      moved = false;
       startX = clientX;
-      startIndex = index;
-      currentIndex = index;
+      startIndex = indexRef.current;
+      currentIndex = startIndex;
     };
 
-    const handleMove = (clientX: number) => {
-      if (!dragging.current) return;
+    const move = (clientX: number) => {
+      if (!dragging) return;
+      const delta = clientX - startX;
+      if (Math.abs(delta) > DRAG_THRESHOLD_PX) moved = true;
       const rect = root.getBoundingClientRect();
-      const unit = rect.width / Math.max(1, count - 1);
-      // Drag right = smaller index (like scrubbing a dial)? Follow spec: swipe L/R changes value.
-      // We'll use drag right = higher index (natural scrub).
-      const delta = (clientX - startX) / unit;
-      currentIndex = Math.max(0, Math.min(count - 1, startIndex + delta));
-      onScrub?.(currentIndex);
+      const c = countRef.current;
+      const unit = rect.width / Math.max(1, c - 1);
+      const deltaUnit = delta / unit;
+      currentIndex = Math.max(0, Math.min(c - 1, startIndex + deltaUnit));
+      onScrubRef.current?.(currentIndex);
     };
 
-    const handleEnd = () => {
-      if (!dragging.current) return;
-      dragging.current = false;
+    const end = () => {
+      if (!dragging) return;
+      dragging = false;
+
+      if (!moved) {
+        // Tap without drag — detect double tap
+        const now = Date.now();
+        onScrubRef.current?.(startIndex);
+        if (now - lastTapTs < DOUBLE_TAP_MS) {
+          lastTapTs = 0;
+          onDoubleTapRef.current?.();
+        } else {
+          lastTapTs = now;
+        }
+        return;
+      }
+
       const snapped = Math.round(currentIndex);
-      onChange(Math.max(0, Math.min(count - 1, snapped)));
+      onChangeRef.current(
+        Math.max(0, Math.min(countRef.current - 1, snapped)),
+      );
     };
 
-    const onTouchStart = (e: TouchEvent) => handleStart(e.touches[0].clientX);
+    const onTouchStart = (e: TouchEvent) => begin(e.touches[0].clientX);
     const onTouchMove = (e: TouchEvent) => {
-      if (dragging.current) e.preventDefault();
-      handleMove(e.touches[0].clientX);
+      if (dragging && moved) e.preventDefault();
+      move(e.touches[0].clientX);
     };
-    const onTouchEnd = () => handleEnd();
+    const onTouchEnd = () => end();
 
     const onPointerDown = (e: PointerEvent) => {
-      if (e.pointerType === 'touch') return; // touch handled separately
+      if (e.pointerType === 'touch') return;
       root.setPointerCapture(e.pointerId);
-      handleStart(e.clientX);
+      begin(e.clientX);
     };
-    const onPointerMove = (e: PointerEvent) => handleMove(e.clientX);
+    const onPointerMove = (e: PointerEvent) => move(e.clientX);
     const onPointerUp = (e: PointerEvent) => {
-      root.releasePointerCapture(e.pointerId);
-      handleEnd();
+      try {
+        root.releasePointerCapture(e.pointerId);
+      } catch {
+        // already released
+      }
+      end();
     };
 
     root.addEventListener('touchstart', onTouchStart, { passive: true });
@@ -97,9 +136,9 @@ export function TickSlider({
       root.removeEventListener('pointerup', onPointerUp);
       root.removeEventListener('pointercancel', onPointerUp);
     };
-  }, [count, index, onChange, onScrub]);
+    // Bind once; refs supply latest values to listeners.
+  }, []);
 
-  // We render ticks as individual divs for crisp positioning at any count.
   const ticks = Array.from({ length: count });
 
   return (

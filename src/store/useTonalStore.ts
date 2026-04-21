@@ -19,10 +19,17 @@ interface TonalState {
   highlightWarningEnabled: boolean;
   isFrozen: boolean;
 
+  // Exposure control locks. Drag → lock. Double-tap → unlock (auto).
+  isApertureLocked: boolean;
+  isShutterLocked: boolean;
+  isIsoLocked: boolean;
+
   setFilm: (film: FilmStock) => void;
-  /** Change ISO within the currently selected film group (same manufacturer + film name). */
+  /** Change ISO within the currently selected film group. Locks ISO. */
   setISO: (ei: number) => void;
+  /** User-driven aperture change from a drag. Locks aperture. */
   setAperture: (v: number) => void;
+  /** User-driven shutter change from a drag. Locks shutter. */
   setShutter: (v: number) => void;
   setExpComp: (v: number) => void;
   setFormat: (f: FormatKey) => void;
@@ -34,11 +41,12 @@ interface TonalState {
   toggleHighlightWarning: () => void;
   toggleFrozen: () => void;
   setFrozen: (v: boolean) => void;
+
+  setApertureLocked: (v: boolean) => void;
+  setShutterLocked: (v: boolean) => void;
+  setIsoLocked: (v: boolean) => void;
 }
 
-// App opens on digital. Digital is the closest analogue to how the
-// iPhone's sensor behaves, so the initial reading is honest before any
-// film decision has been made.
 const defaultFilm =
   FILM_STOCKS.find((f) => f.category === 'digital' && f.ei === 400) ?? FILM_STOCKS[0];
 const defaultFormat = FORMATS[0];
@@ -61,7 +69,13 @@ export const useTonalStore = create<TonalState>((set) => ({
   highlightWarningEnabled: false,
   isFrozen: false,
 
-  setFilm: (film) => set({ selectedFilm: film }),
+  // Startup: aperture locked at f/5.6, ISO locked at 400, shutter auto so
+  // the meter shows a live recommendation from the first frame.
+  isApertureLocked: true,
+  isShutterLocked: false,
+  isIsoLocked: true,
+
+  setFilm: (film) => set({ selectedFilm: film, isIsoLocked: true }),
   setISO: (ei) =>
     set((s) => {
       const match = FILM_STOCKS.find(
@@ -70,10 +84,10 @@ export const useTonalStore = create<TonalState>((set) => ({
           f.film === s.selectedFilm.film &&
           f.ei === ei,
       );
-      return match ? { selectedFilm: match } : {};
+      return match ? { selectedFilm: match, isIsoLocked: true } : {};
     }),
-  setAperture: (v) => set({ aperture: v }),
-  setShutter: (v) => set({ shutter: v }),
+  setAperture: (v) => set({ aperture: v, isApertureLocked: true }),
+  setShutter: (v) => set({ shutter: v, isShutterLocked: true }),
   setExpComp: (v) => set({ expComp: v }),
   setFormat: (f) => {
     const fmt = findFormat(f);
@@ -93,4 +107,8 @@ export const useTonalStore = create<TonalState>((set) => ({
     set((s) => ({ highlightWarningEnabled: !s.highlightWarningEnabled })),
   toggleFrozen: () => set((s) => ({ isFrozen: !s.isFrozen })),
   setFrozen: (v) => set({ isFrozen: v }),
+
+  setApertureLocked: (v) => set({ isApertureLocked: v }),
+  setShutterLocked: (v) => set({ isShutterLocked: v }),
+  setIsoLocked: (v) => set({ isIsoLocked: v }),
 }));
