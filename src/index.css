@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #1a1a19;
+  --color-ink-soft: #6b7280;
+  --color-grey-100: #e5e8ec;
+  --color-grey-200: #d0d7de;
+  --color-grey-300: #b8c2cc;
+  --color-iso-cream: #ebf2c6;
+  --color-accent: #007bfe;
+  --color-warning: #e45858;
+
+  --font-sf: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+
+  --radius-pill: 999px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: #ffffff;
+  color: var(--color-ink);
+  font-family: var(--font-sf);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+}
+
+button {
+  font-family: inherit;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* Tick-mark slider rail — repeating linear-gradient.
+   Minor ticks (6px) repeat every tickUnit, major ticks (8px) every 5th unit.
+   Use via inline style custom props --tick-unit and --tick-color. */
+.tonal-rail {
+  --tick-unit: 25px;
+  --tick-color: #1a1a19;
+  height: 8px;
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      var(--tick-color) 0,
+      var(--tick-color) 1px,
+      transparent 1px,
+      transparent var(--tick-unit)
+    );
+  background-size: 100% 6px;
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  position: relative;
+}
+
+/* Major ticks (slightly taller) every 5th position */
+.tonal-rail::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 0;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--tick-color) 0,
+    var(--tick-color) 1px,
+    transparent 1px,
+    transparent calc(var(--tick-unit) * 5)
+  );
+  background-size: 100% 8px;
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  pointer-events: none;
+}
+
+/* Center-marker for the exposure comp slider */
+.tonal-rail--center::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-ink, #1a1a19);
+  transform: translateX(-50%);
+}

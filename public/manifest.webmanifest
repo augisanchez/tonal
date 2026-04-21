@@ -1,0 +1,19 @@
+{
+  "name": "Tonal — Film Light Meter",
+  "short_name": "Tonal",
+  "description": "A film-aware light meter. See where your tones fall.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
