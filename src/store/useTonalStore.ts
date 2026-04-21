@@ -17,6 +17,7 @@ interface TonalState {
   isFilmSheetOpen: boolean;
   shadowWarningEnabled: boolean;
   highlightWarningEnabled: boolean;
+  isFrozen: boolean;
 
   setFilm: (film: FilmStock) => void;
   setAperture: (v: number) => void;
@@ -29,6 +30,8 @@ interface TonalState {
   closeFilmSheet: () => void;
   toggleShadowWarning: () => void;
   toggleHighlightWarning: () => void;
+  toggleFrozen: () => void;
+  setFrozen: (v: boolean) => void;
 }
 
 const defaultFilm =
@@ -50,6 +53,7 @@ export const useTonalStore = create<TonalState>((set) => ({
   isFilmSheetOpen: false,
   shadowWarningEnabled: false,
   highlightWarningEnabled: false,
+  isFrozen: false,
 
   setFilm: (film) => set({ selectedFilm: film }),
   setAperture: (v) => set({ aperture: v }),
@@ -71,4 +75,6 @@ export const useTonalStore = create<TonalState>((set) => ({
     set((s) => ({ shadowWarningEnabled: !s.shadowWarningEnabled })),
   toggleHighlightWarning: () =>
     set((s) => ({ highlightWarningEnabled: !s.highlightWarningEnabled })),
+  toggleFrozen: () => set((s) => ({ isFrozen: !s.isFrozen })),
+  setFrozen: (v) => set({ isFrozen: v }),
 }));

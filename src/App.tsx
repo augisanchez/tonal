@@ -18,6 +18,13 @@ function fovZoom(focalLength: number, standardFL: number): number {
   return Math.max(1, focalLength / standardFL);
 }
 
+/** Formats are stored in native (landscape) orientation. The app is held in
+ *  portrait, so we invert aspects ≥ 1 for the viewfinder display — a 3:2
+ *  negative turns into a 2:3 portrait frame on screen. */
+function toPortraitAspect(nativeAspect: number): number {
+  return nativeAspect >= 1 ? 1 / nativeAspect : nativeAspect;
+}
+
 export default function App() {
   const film = useTonalStore((s) => s.selectedFilm);
   const expComp = useTonalStore((s) => s.expComp);
@@ -26,10 +33,13 @@ export default function App() {
   const focalLength = useTonalStore((s) => s.focalLength);
   const shadowWarning = useTonalStore((s) => s.shadowWarningEnabled);
   const highlightWarning = useTonalStore((s) => s.highlightWarningEnabled);
+  const isFrozen = useTonalStore((s) => s.isFrozen);
+  const toggleFrozen = useTonalStore((s) => s.toggleFrozen);
 
   const fmt = findFormat(formatKey);
   const aspectOpt = fmt.aspects.find((a) => a.id === aspectId) ?? fmt.aspects[0];
   const zoom = fovZoom(focalLength, aspectOpt.standardFL);
+  const displayAspect = toPortraitAspect(aspectOpt.aspect);
 
   const { videoRef, canvasRef, isReady, isPermissionDenied, requestCamera } = useCamera();
 
@@ -37,10 +47,11 @@ export default function App() {
     videoRef,
     canvasRef,
     isReady,
-    containerAspect: aspectOpt.aspect,
+    containerAspect: displayAspect,
     zoom,
     film,
     expComp,
+    active: !isFrozen,
   });
 
   const zones = deriveZoneMarkers(film, expComp, analysis);
@@ -69,11 +80,13 @@ export default function App() {
         <section className="flex-1 flex flex-col items-center justify-center px-6 py-4">
           <PreviewArea
             videoRef={videoRef}
-            aspect={aspectOpt.aspect}
+            aspect={displayAspect}
             zoom={zoom}
             isReady={isReady}
             isPermissionDenied={isPermissionDenied}
             onRequestCamera={requestCamera}
+            isFrozen={isFrozen}
+            onToggleFreeze={toggleFrozen}
             overlay={
               <ClippingOverlay
                 analysis={analysis}

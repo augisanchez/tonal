@@ -7,8 +7,9 @@ interface PreviewAreaProps {
   isReady: boolean;
   isPermissionDenied: boolean;
   onRequestCamera: () => void;
+  isFrozen: boolean;
+  onToggleFreeze: () => void;
   children?: React.ReactNode;
-  /** Overlay layers (clipping warnings) rendered under the zone markers. */
   overlay?: React.ReactNode;
 }
 
@@ -28,6 +29,8 @@ export function PreviewArea({
   isReady,
   isPermissionDenied,
   onRequestCamera,
+  isFrozen,
+  onToggleFreeze,
   children,
   overlay,
 }: PreviewAreaProps) {
@@ -72,8 +75,32 @@ export function PreviewArea({
         {/* Clipping / warning overlays */}
         {isReady && overlay}
 
+        {/* Tap target for freeze toggle (below markers so they stay legible) */}
+        {isReady && (
+          <button
+            type="button"
+            onClick={onToggleFreeze}
+            aria-label={isFrozen ? 'Resume live reading' : 'Freeze current reading'}
+            aria-pressed={isFrozen}
+            className="absolute inset-0 z-10"
+          />
+        )}
+
         {/* Zone markers overlay */}
-        {isReady && <div className="absolute inset-0 pointer-events-none">{children}</div>}
+        {isReady && (
+          <div className="absolute inset-0 pointer-events-none z-20">{children}</div>
+        )}
+
+        {/* HOLD badge when frozen */}
+        {isReady && isFrozen && (
+          <div
+            className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-ink text-white px-2.5 py-1 rounded-full text-[10px] font-bold pointer-events-none"
+            style={{ letterSpacing: '0.12em' }}
+            aria-hidden
+          >
+            HOLD
+          </div>
+        )}
       </div>
     </div>
   );
