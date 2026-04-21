@@ -170,18 +170,31 @@ export function FilmSelectionSheet() {
                 <Chevron dir="right" />
               </button>
             </div>
-            <div className="flex flex-col items-center w-full gap-2">
+            <div className="flex flex-col items-center w-full gap-1">
               <div className="flex items-center gap-4">
-                <button onClick={() => cycleEI(-1)} className="p-1 text-ink-soft text-[14px]" aria-label="Previous EI">
-                  −
-                </button>
-                <span className="text-[14px] font-semibold tracking-tight">
-                  @ ISO {workingFilm.ei}
-                </span>
-                <button onClick={() => cycleEI(1)} className="p-1 text-ink-soft text-[14px]" aria-label="Next EI">
-                  +
-                </button>
+                {currentGroup && currentGroup.stocks.length > 1 ? (
+                  <>
+                    <button onClick={() => cycleEI(-1)} className="p-1 text-ink-soft text-[14px]" aria-label="Previous EI">
+                      −
+                    </button>
+                    <span className="text-[14px] font-semibold tracking-tight">
+                      @ ISO {workingFilm.ei}
+                    </span>
+                    <button onClick={() => cycleEI(1)} className="p-1 text-ink-soft text-[14px]" aria-label="Next EI">
+                      +
+                    </button>
+                  </>
+                ) : (
+                  <span className="text-[14px] font-semibold tracking-tight">
+                    @ ISO {workingFilm.ei}
+                  </span>
+                )}
               </div>
+              {category !== 'digital' && (
+                <span className="text-[11px] text-ink-soft tracking-tight pt-1">
+                  Rated for this roll — ISO is locked once loaded.
+                </span>
+              )}
             </div>
           </div>
 

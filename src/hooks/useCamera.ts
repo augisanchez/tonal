@@ -69,12 +69,7 @@ export function useCamera(): UseCameraReturn {
       video.muted = true;
 
       const onMeta = () => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-          const scale = 320 / video.videoWidth;
-          canvas.width = 320;
-          canvas.height = Math.round(video.videoHeight * scale);
-        }
+        // Canvas sizing is owned by useFrameAnalysis — don't touch it here.
         setVideoDims({ width: video.videoWidth, height: video.videoHeight });
         video.play().catch((err) => {
           setError(err instanceof Error ? err.message : 'Video play failed');
@@ -136,61 +131,5 @@ export function useCamera(): UseCameraReturn {
   };
 }
 
-/** Rough Robertson-style approximation from average R/B ratio. */
-export function estimateKelvin(r: number, _g: number, b: number): number {
-  if (b === 0) return 5500;
-  const ratio = r / b;
-  if (ratio > 1.8) return 2700;
-  if (ratio > 1.4) return 3200;
-  if (ratio > 1.1) return 4000;
-  if (ratio > 0.9) return 5500;
-  if (ratio > 0.75) return 6500;
-  return 8000;
-}
-
-/** Samples the live video canvas once per second and reports a Kelvin estimate. */
-export function useKelvinSampler(
-  isReady: boolean,
-  videoRef: React.RefObject<HTMLVideoElement | null>,
-  canvasRef: React.RefObject<HTMLCanvasElement | null>,
-  onKelvin: (k: number) => void,
-) {
-  useEffect(() => {
-    if (!isReady) return;
-
-    const interval = window.setInterval(() => {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      if (!video || !canvas) return;
-      if (video.readyState < 2) return;
-
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      try {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = frame.data;
-
-        let r = 0;
-        let gSum = 0;
-        let b = 0;
-        let count = 0;
-        // Sample every 40th pixel (stride 10 on RGBA)
-        for (let i = 0; i < data.length; i += 40) {
-          r += data[i];
-          gSum += data[i + 1];
-          b += data[i + 2];
-          count++;
-        }
-        if (count === 0) return;
-
-        onKelvin(estimateKelvin(r / count, gSum / count, b / count));
-      } catch {
-        // getImageData can throw on tainted canvas; ignore
-      }
-    }, 1000);
-
-    return () => window.clearInterval(interval);
-  }, [isReady, videoRef, canvasRef, onKelvin]);
-}
+// Kelvin estimation now lives inside useFrameAnalysis, which already has
+// per-cell R/G/B data from the analysis loop.

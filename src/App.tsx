@@ -1,10 +1,11 @@
-import { useCallback } from 'react';
 import { useTonalStore } from './store/useTonalStore';
 import { findFormat } from './data/formats';
-import { useZoneEngine } from './hooks/useZoneEngine';
-import { useCamera, useKelvinSampler } from './hooks/useCamera';
+import { deriveZoneMarkers } from './hooks/useZoneEngine';
+import { useCamera } from './hooks/useCamera';
+import { useFrameAnalysis } from './hooks/useFrameAnalysis';
 import { PreviewArea } from './components/PreviewArea';
 import { ZoneMarker } from './components/ZoneMarker';
+import { ClippingOverlay } from './components/ClippingOverlay';
 import { EVDisplay } from './components/EVDisplay';
 import { ShadowWarningButton, HighlightWarningButton } from './components/WarningIcons';
 import { FilmInfoBar } from './components/FilmInfoBar';
@@ -23,25 +24,29 @@ export default function App() {
   const formatKey = useTonalStore((s) => s.format);
   const aspectId = useTonalStore((s) => s.aspectRatioId);
   const focalLength = useTonalStore((s) => s.focalLength);
-  const setKelvin = useTonalStore((s) => s.setKelvin);
+  const shadowWarning = useTonalStore((s) => s.shadowWarningEnabled);
+  const highlightWarning = useTonalStore((s) => s.highlightWarningEnabled);
 
   const fmt = findFormat(formatKey);
   const aspectOpt = fmt.aspects.find((a) => a.id === aspectId) ?? fmt.aspects[0];
   const zoom = fovZoom(focalLength, aspectOpt.standardFL);
 
-  const zones = useZoneEngine(film, expComp);
-
   const { videoRef, canvasRef, isReady, isPermissionDenied, requestCamera } = useCamera();
 
-  const onKelvin = useCallback(
-    (k: number) => setKelvin(k),
-    [setKelvin],
-  );
-  useKelvinSampler(isReady, videoRef, canvasRef, onKelvin);
+  const analysis = useFrameAnalysis({
+    videoRef,
+    canvasRef,
+    isReady,
+    containerAspect: aspectOpt.aspect,
+    zoom,
+    film,
+    expComp,
+  });
+
+  const zones = deriveZoneMarkers(film, expComp, analysis);
 
   return (
     <div className="min-h-[100svh] w-full bg-white text-ink font-sans flex justify-center">
-      {/* hidden canvas for frame analysis */}
       <canvas ref={canvasRef} className="hidden" />
 
       <div
@@ -51,14 +56,16 @@ export default function App() {
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
-        {/* Top row: shadow warning · EV/K · highlight warning */}
-        <header className="flex items-center justify-between px-6 pt-2 pb-1">
+        <header className="flex items-start justify-between px-6 pt-2 pb-1">
           <ShadowWarningButton />
-          <EVDisplay />
+          <EVDisplay
+            kelvin={analysis?.kelvin ?? 5500}
+            sceneDRStops={analysis?.sceneDRStops ?? null}
+            filmDRStops={film.totalDR}
+          />
           <HighlightWarningButton />
         </header>
 
-        {/* Preview */}
         <section className="flex-1 flex flex-col items-center justify-center px-6 py-4">
           <PreviewArea
             videoRef={videoRef}
@@ -67,6 +74,15 @@ export default function App() {
             isReady={isReady}
             isPermissionDenied={isPermissionDenied}
             onRequestCamera={requestCamera}
+            overlay={
+              <ClippingOverlay
+                analysis={analysis}
+                minZone={film.minZone}
+                maxZone={film.maxZone}
+                showShadow={shadowWarning}
+                showHighlight={highlightWarning}
+              />
+            }
           >
             {zones.map((z) => (
               <ZoneMarker key={`${z.zone}-${z.label}`} {...z} />
@@ -74,14 +90,12 @@ export default function App() {
           </PreviewArea>
         </section>
 
-        {/* Pagination dots (static for Stage 1 — preset scaffolding) */}
         <div className="flex items-center justify-center gap-2 pb-2" aria-hidden>
           <span className="w-2 h-2 rounded-full bg-ink" />
           <span className="w-2 h-2 rounded-full bg-grey-200" />
           <span className="text-[10px] text-grey-300 pl-1">+</span>
         </div>
 
-        {/* Film info + controls */}
         <section className="px-6 flex flex-col gap-3 pb-4">
           <FilmInfoBar />
           <ApertureSlider />

@@ -8,6 +8,8 @@ interface PreviewAreaProps {
   isPermissionDenied: boolean;
   onRequestCamera: () => void;
   children?: React.ReactNode;
+  /** Overlay layers (clipping warnings) rendered under the zone markers. */
+  overlay?: React.ReactNode;
 }
 
 function CameraIcon({ className = '' }: { className?: string }) {
@@ -27,6 +29,7 @@ export function PreviewArea({
   isPermissionDenied,
   onRequestCamera,
   children,
+  overlay,
 }: PreviewAreaProps) {
   return (
     <div className="relative w-full max-w-[380px] mx-auto">
@@ -34,7 +37,6 @@ export function PreviewArea({
         className="relative w-full rounded-[10px] border border-grey-200 overflow-hidden bg-white"
         style={{ aspectRatio: aspect }}
       >
-        {/* Live video (always mounted so ref is available) */}
         <video
           ref={videoRef}
           autoPlay
@@ -49,7 +51,6 @@ export function PreviewArea({
           }}
         />
 
-        {/* Placeholder / prompt / error overlay */}
         {!isReady && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-ink-soft p-6 text-center">
             <CameraIcon className="w-8 h-8 text-ink-soft" />
@@ -61,15 +62,15 @@ export function PreviewArea({
                 </p>
               </>
             ) : (
-              <button
-                onClick={onRequestCamera}
-                className="text-[14px] font-semibold text-ink mt-1"
-              >
+              <button onClick={onRequestCamera} className="text-[14px] font-semibold text-ink mt-1">
                 Tap to enable camera
               </button>
             )}
           </div>
         )}
+
+        {/* Clipping / warning overlays */}
+        {isReady && overlay}
 
         {/* Zone markers overlay */}
         {isReady && <div className="absolute inset-0 pointer-events-none">{children}</div>}
