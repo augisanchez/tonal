@@ -103,10 +103,19 @@ export const FILM_STOCKS: FilmStock[] = [
   make('cinema', 'Kodak Vision3', '250D', 250, 13, 5.0, 6.0, 'III', 'VIII', ['clip', 'III', 'IV', 'V', 'VI', 'VII', 'VIII']),
   make('cinema', 'Kodak Vision3', '500T', 500, 13, 5.0, 6.0, 'III', 'VIII', ['clip', 'III', 'IV', 'V', 'VI', 'VII', 'VIII']),
 
-  // Digital (highlight priority)
-  make('digital', 'Digital', 'Generic Digital', 100, 12, 7.0, 2.0, 'II', 'VII', ['II', 'III', 'IV', 'V', 'VI', 'clip', 'clip']),
-  make('digital', 'Digital', 'Generic Digital', 200, 11.5, 6.5, 2.0, 'II', 'VII', ['II', 'III', 'IV', 'V', 'VI', 'clip', 'clip']),
-  make('digital', 'Digital', 'Generic Digital', 400, 11, 6.0, 2.0, 'II', 'VII', ['II', 'III', 'IV', 'V', 'VI', 'clip', 'clip']),
+  // Digital (highlight priority) — full ISO range, DR tapers with gain.
+  // All share a single film group "Sensor / Digital" so the rating chips
+  // (and main-screen ISO slider) give one clean push/pull control surface.
+  make('digital', 'Sensor', 'Digital', 50, 12, 7.0, 2.0, 'II', 'VII', ['II', 'III', 'IV', 'V', 'VI', 'clip', 'clip']),
+  make('digital', 'Sensor', 'Digital', 100, 12, 7.0, 2.0, 'II', 'VII', ['II', 'III', 'IV', 'V', 'VI', 'clip', 'clip']),
+  make('digital', 'Sensor', 'Digital', 200, 11.5, 6.5, 2.0, 'II', 'VII', ['II', 'III', 'IV', 'V', 'VI', 'clip', 'clip']),
+  make('digital', 'Sensor', 'Digital', 400, 11, 6.0, 2.0, 'II', 'VII', ['II', 'III', 'IV', 'V', 'VI', 'clip', 'clip']),
+  make('digital', 'Sensor', 'Digital', 800, 10.5, 5.5, 2.0, 'II', 'VII', ['II', 'III', 'IV', 'V', 'VI', 'clip', 'clip']),
+  make('digital', 'Sensor', 'Digital', 1600, 10, 5.0, 2.0, 'II', 'VII', ['II', 'III', 'IV', 'V', 'VI', 'clip', 'clip']),
+  make('digital', 'Sensor', 'Digital', 3200, 9.5, 4.5, 2.0, 'II', 'VII', ['II', 'III', 'IV', 'V', 'VI', 'clip', 'clip']),
+  make('digital', 'Sensor', 'Digital', 6400, 9, 4.0, 2.0, 'II', 'VII', ['II', 'III', 'IV', 'V', 'VI', 'clip', 'clip']),
+  make('digital', 'Sensor', 'Digital', 12800, 8.5, 3.5, 2.0, 'II', 'VII', ['II', 'III', 'IV', 'V', 'VI', 'clip', 'clip']),
+  make('digital', 'Sensor', 'Digital', 25600, 8, 3.0, 2.0, 'II', 'VII', ['II', 'III', 'IV', 'V', 'VI', 'clip', 'clip']),
 ];
 
 export const CATEGORY_ORDER: FilmStock['category'][] = [

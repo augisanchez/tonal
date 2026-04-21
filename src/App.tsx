@@ -11,6 +11,7 @@ import { ShadowWarningButton, HighlightWarningButton } from './components/Warnin
 import { FilmInfoBar } from './components/FilmInfoBar';
 import { ApertureSlider } from './components/ApertureSlider';
 import { ShutterSlider } from './components/ShutterSlider';
+import { IsoSlider } from './components/IsoSlider';
 import { ExpCompSlider } from './components/ExpCompSlider';
 import { FilmSelectionSheet } from './components/FilmSelectionSheet';
 
@@ -111,11 +112,14 @@ export default function App() {
           <span className="text-[10px] text-grey-300 pl-1">+</span>
         </div>
 
-        {/* Controls — fixed height, never shrinks */}
+        {/* Controls — fixed height, never shrinks.
+            ISO slider only renders when the current film group has >1 EI variant
+            (digital always; push/pull films like Tri-X 400; hidden for box-speed-only films). */}
         <section className="shrink-0 px-6 flex flex-col gap-2 pb-4">
           <FilmInfoBar />
           <ApertureSlider />
           <ShutterSlider />
+          <IsoSlider />
           <ExpCompSlider />
         </section>
       </div>

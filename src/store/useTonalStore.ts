@@ -20,6 +20,8 @@ interface TonalState {
   isFrozen: boolean;
 
   setFilm: (film: FilmStock) => void;
+  /** Change ISO within the currently selected film group (same manufacturer + film name). */
+  setISO: (ei: number) => void;
   setAperture: (v: number) => void;
   setShutter: (v: number) => void;
   setExpComp: (v: number) => void;
@@ -34,10 +36,14 @@ interface TonalState {
   setFrozen: (v: boolean) => void;
 }
 
+// App opens on digital. Digital is the closest analogue to how the
+// iPhone's sensor behaves, so the initial reading is honest before any
+// film decision has been made.
 const defaultFilm =
-  FILM_STOCKS.find((f) => f.film === 'Portra 400' && f.ei === 200) ?? FILM_STOCKS[0];
+  FILM_STOCKS.find((f) => f.category === 'digital' && f.ei === 400) ?? FILM_STOCKS[0];
 const defaultFormat = FORMATS[0];
-const defaultAspect = defaultFormat.aspects.find((a) => a.id === 'standard') ?? defaultFormat.aspects[0];
+const defaultAspect =
+  defaultFormat.aspects.find((a) => a.id === 'standard') ?? defaultFormat.aspects[0];
 
 export const useTonalStore = create<TonalState>((set) => ({
   selectedFilm: defaultFilm,
@@ -48,7 +54,7 @@ export const useTonalStore = create<TonalState>((set) => ({
 
   format: defaultFormat.key,
   aspectRatioId: defaultAspect.id,
-  focalLength: 28,
+  focalLength: 50,
 
   isFilmSheetOpen: false,
   shadowWarningEnabled: false,
@@ -56,6 +62,16 @@ export const useTonalStore = create<TonalState>((set) => ({
   isFrozen: false,
 
   setFilm: (film) => set({ selectedFilm: film }),
+  setISO: (ei) =>
+    set((s) => {
+      const match = FILM_STOCKS.find(
+        (f) =>
+          f.manufacturer === s.selectedFilm.manufacturer &&
+          f.film === s.selectedFilm.film &&
+          f.ei === ei,
+      );
+      return match ? { selectedFilm: match } : {};
+    }),
   setAperture: (v) => set({ aperture: v }),
   setShutter: (v) => set({ shutter: v }),
   setExpComp: (v) => set({ expComp: v }),

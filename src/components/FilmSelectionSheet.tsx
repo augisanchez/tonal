@@ -252,14 +252,11 @@ export function FilmSelectionSheet() {
             </div>
           </section>
 
-          {/* RATING */}
-          {currentGroup && (
+          {/* RATING / ISO */}
+          {currentGroup && currentGroup.stocks.length > 1 && (
             <section className="flex flex-col gap-2">
               <div className="flex items-baseline justify-between">
-                <SectionHeader>Rating</SectionHeader>
-                {category !== 'digital' && (
-                  <span className="text-[11px] text-ink-soft">Locked once loaded</span>
-                )}
+                <SectionHeader>{category === 'digital' ? 'ISO' : 'Rating (Push / Pull)'}</SectionHeader>
               </div>
               <div className="flex gap-1.5 flex-wrap">
                 {currentGroup.stocks.map((s) => (
