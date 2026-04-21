@@ -1,5 +1,12 @@
 import type { FormatDef } from '../types';
 
+export const FORMAT_SHORT: Record<string, string> = {
+  '35mm': '35mm',
+  '120': '120',
+  lf: 'LF',
+  instant: 'Instant',
+};
+
 export const FORMATS: FormatDef[] = [
   {
     key: '35mm',

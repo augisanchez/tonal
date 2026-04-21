@@ -125,6 +125,14 @@ export const CATEGORY_LABEL: Record<FilmStock['category'], string> = {
   digital: 'DIGITAL',
 };
 
+export const CATEGORY_SHORT: Record<FilmStock['category'], string> = {
+  'negative-color': 'Color',
+  'black-white': 'B&W',
+  cinema: 'Cinema',
+  instant: 'Instant',
+  digital: 'Digital',
+};
+
 /** Films grouped by base name+manufacturer, each with its available EI options. */
 export interface FilmGroup {
   key: string;

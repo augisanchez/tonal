@@ -18,9 +18,8 @@ function fovZoom(focalLength: number, standardFL: number): number {
   return Math.max(1, focalLength / standardFL);
 }
 
-/** Formats are stored in native (landscape) orientation. The app is held in
- *  portrait, so we invert aspects ≥ 1 for the viewfinder display — a 3:2
- *  negative turns into a 2:3 portrait frame on screen. */
+/** Formats are stored in native (landscape) orientation. Phone is portrait,
+ *  so aspects ≥ 1 invert for the viewfinder. */
 function toPortraitAspect(nativeAspect: number): number {
   return nativeAspect >= 1 ? 1 / nativeAspect : nativeAspect;
 }
@@ -57,17 +56,18 @@ export default function App() {
   const zones = deriveZoneMarkers(film, expComp, analysis);
 
   return (
-    <div className="min-h-[100svh] w-full bg-white text-ink font-sans flex justify-center">
+    <div className="h-[100svh] w-full bg-white text-ink font-sans flex justify-center overflow-hidden">
       <canvas ref={canvasRef} className="hidden" />
 
       <div
-        className="relative w-full max-w-[430px] flex flex-col items-stretch"
+        className="relative w-full max-w-[430px] h-full flex flex-col"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
-        <header className="flex items-start justify-between px-6 pt-2 pb-1">
+        {/* Top bar — fixed height */}
+        <header className="shrink-0 flex items-start justify-between px-6 pt-2 pb-1">
           <ShadowWarningButton />
           <EVDisplay
             kelvin={analysis?.kelvin ?? 5500}
@@ -77,7 +77,8 @@ export default function App() {
           <HighlightWarningButton />
         </header>
 
-        <section className="flex-1 flex flex-col items-center justify-center px-6 py-4">
+        {/* Preview — fills whatever vertical space is left */}
+        <section className="flex-1 min-h-0 flex items-center justify-center px-6 py-2">
           <PreviewArea
             videoRef={videoRef}
             aspect={displayAspect}
@@ -103,13 +104,15 @@ export default function App() {
           </PreviewArea>
         </section>
 
-        <div className="flex items-center justify-center gap-2 pb-2" aria-hidden>
+        {/* Preset dots — fixed height */}
+        <div className="shrink-0 flex items-center justify-center gap-2 py-1" aria-hidden>
           <span className="w-2 h-2 rounded-full bg-ink" />
           <span className="w-2 h-2 rounded-full bg-grey-200" />
           <span className="text-[10px] text-grey-300 pl-1">+</span>
         </div>
 
-        <section className="px-6 flex flex-col gap-3 pb-4">
+        {/* Controls — fixed height, never shrinks */}
+        <section className="shrink-0 px-6 flex flex-col gap-2 pb-4">
           <FilmInfoBar />
           <ApertureSlider />
           <ShutterSlider />

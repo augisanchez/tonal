@@ -39,6 +39,14 @@ button {
   color: inherit;
 }
 
+/* Hide native scrollbars on horizontal scroll rows (tabs, chips) */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 input,
 select,
 textarea {

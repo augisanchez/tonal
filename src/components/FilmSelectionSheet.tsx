@@ -1,31 +1,138 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTonalStore } from '../store/useTonalStore';
 import {
-  CATEGORY_LABEL,
   CATEGORY_ORDER,
+  CATEGORY_SHORT,
   FILM_STOCKS,
   groupFilmsByCategory,
   type FilmGroup,
 } from '../data/filmStocks';
-import { FORMATS, findFormat } from '../data/formats';
+import { FORMAT_SHORT, FORMATS, findFormat } from '../data/formats';
 import type { FilmCategory, FilmStock, FormatKey } from '../types';
 
-function Chevron({ dir }: { dir: 'left' | 'right' }) {
+// ── Primitives ──────────────────────────────────────────────────────────
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <svg viewBox="0 0 12 20" className="w-[9px] h-[22px]" fill="none" stroke="currentColor" strokeWidth="1.5">
-      {dir === 'left' ? (
-        <path d="M9 3L3 10l6 7" strokeLinecap="round" strokeLinejoin="round" />
-      ) : (
-        <path d="M3 3l6 7-6 7" strokeLinecap="round" strokeLinejoin="round" />
-      )}
-    </svg>
+    <div className="text-[11px] font-semibold tracking-[0.12em] text-ink-soft uppercase">
+      {children}
+    </div>
   );
 }
 
-function cycle<T>(arr: T[], current: number, delta: number): number {
-  const n = arr.length;
-  return ((current + delta) % n + n) % n;
+function TabRow({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex gap-1.5 overflow-x-auto -mx-6 px-6 scrollbar-none" style={{ scrollbarWidth: 'none' }}>
+      {children}
+    </div>
+  );
 }
+
+function Tab({
+  selected,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 px-4 py-2 rounded-full text-[13px] font-semibold tracking-tight whitespace-nowrap transition-colors ${
+        selected ? 'bg-ink text-white' : 'bg-grey-100 text-ink active:bg-grey-200'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Chip({
+  selected,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 px-3 py-1.5 rounded-full text-[13px] font-semibold tracking-tight whitespace-nowrap transition-colors ${
+        selected ? 'bg-ink text-white' : 'bg-grey-100 text-ink active:bg-grey-200'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function FilmCard({
+  group,
+  selected,
+  onClick,
+}: {
+  group: FilmGroup;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col gap-1.5 p-2 rounded-[10px] text-left border transition-colors ${
+        selected ? 'border-ink bg-grey-100' : 'border-transparent active:bg-grey-100/60'
+      }`}
+    >
+      <div className="w-full aspect-[4/3] rounded-[6px] bg-grey-100" aria-hidden />
+      <div className="text-[13px] font-semibold tracking-tight leading-[16px]">{group.film}</div>
+      <div className="text-[11px] text-ink-soft leading-[14px]">{group.manufacturer}</div>
+    </button>
+  );
+}
+
+function AspectCard({
+  aspect,
+  name,
+  ratio,
+  selected,
+  onClick,
+}: {
+  aspect: number;
+  name: string;
+  ratio: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  // Visual rectangle — always portrait-oriented to match the viewfinder
+  const portrait = aspect >= 1 ? 1 / aspect : aspect;
+  const w = portrait >= 1 ? 52 : Math.round(52 * portrait);
+  const h = portrait >= 1 ? Math.round(52 / portrait) : 52;
+
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 flex flex-col items-center gap-2 px-3 py-3 rounded-[10px] border min-w-[96px] transition-colors ${
+        selected ? 'border-ink bg-grey-100' : 'border-grey-200 active:bg-grey-100/60'
+      }`}
+    >
+      <div className="flex items-center justify-center h-[56px]">
+        <div
+          className={selected ? 'bg-ink' : 'bg-grey-300'}
+          style={{ width: `${w}px`, height: `${h}px` }}
+        />
+      </div>
+      <div className="text-[13px] font-semibold tracking-tight leading-tight text-center">
+        {name}
+      </div>
+      <div className="text-[11px] text-ink-soft leading-none">{ratio}</div>
+    </button>
+  );
+}
+
+// ── Sheet ───────────────────────────────────────────────────────────────
 
 export function FilmSelectionSheet() {
   const isOpen = useTonalStore((s) => s.isFilmSheetOpen);
@@ -39,7 +146,6 @@ export function FilmSelectionSheet() {
   const focalLength = useTonalStore((s) => s.focalLength);
   const setFocalLength = useTonalStore((s) => s.setFocalLength);
 
-  // Local working state — only commit on Done
   const [workingFilm, setWorkingFilm] = useState<FilmStock>(selectedFilm);
   const [category, setCategory] = useState<FilmCategory>(selectedFilm.category);
   const [workingFormat, setWorkingFormat] = useState<FormatKey>(formatKey);
@@ -56,71 +162,47 @@ export function FilmSelectionSheet() {
     }
   }, [isOpen, selectedFilm, formatKey, aspectId, focalLength]);
 
-  const groups = useMemo(() => groupFilmsByCategory(category), [category]);
-  const groupIdx = Math.max(
-    0,
-    groups.findIndex((g) => g.film === workingFilm.film && g.manufacturer === workingFilm.manufacturer),
+  const availableCategories = useMemo(
+    () => CATEGORY_ORDER.filter((c) => FILM_STOCKS.some((f) => f.category === c)),
+    [],
   );
-  const currentGroup: FilmGroup | undefined = groups[groupIdx];
-  const eiIdx = currentGroup
-    ? Math.max(0, currentGroup.stocks.findIndex((s) => s.ei === workingFilm.ei))
-    : 0;
+
+  const groups = useMemo(() => groupFilmsByCategory(category), [category]);
+  const currentGroup =
+    groups.find((g) => g.manufacturer === workingFilm.manufacturer && g.film === workingFilm.film) ??
+    groups[0];
 
   const fmtDef = findFormat(workingFormat);
-  const aspectIdx = Math.max(
-    0,
-    fmtDef.aspects.findIndex((a) => a.id === workingAspectId),
-  );
-  const focalIdx = Math.max(
-    0,
-    fmtDef.focalLengths.findIndex((mm) => mm === workingFocal),
-  );
 
   if (!isOpen) return null;
 
-  const cycleCategory = (delta: number) => {
-    // Skip empty categories
-    let next = category;
-    for (let i = 0; i < CATEGORY_ORDER.length; i++) {
-      const idx = (CATEGORY_ORDER.indexOf(next) + delta + CATEGORY_ORDER.length) % CATEGORY_ORDER.length;
-      next = CATEGORY_ORDER[idx];
-      if (FILM_STOCKS.some((f) => f.category === next)) break;
-    }
-    const firstGroup = groupFilmsByCategory(next)[0];
-    setCategory(next);
+  const pickCategory = (c: FilmCategory) => {
+    if (c === category) return;
+    setCategory(c);
+    const firstGroup = groupFilmsByCategory(c)[0];
     if (firstGroup) setWorkingFilm(firstGroup.stocks[0]);
   };
 
-  const cycleFilm = (delta: number) => {
-    if (!groups.length) return;
-    const nextIdx = cycle(groups, groupIdx, delta);
-    setWorkingFilm(groups[nextIdx].stocks[0]);
+  const pickFilmGroup = (g: FilmGroup) => {
+    setWorkingFilm(g.stocks[0]);
   };
 
-  const cycleEI = (delta: number) => {
-    if (!currentGroup) return;
-    const nextIdx = cycle(currentGroup.stocks, eiIdx, delta);
-    setWorkingFilm(currentGroup.stocks[nextIdx]);
+  const pickEI = (stock: FilmStock) => {
+    setWorkingFilm(stock);
   };
 
-  const cycleFormat = (delta: number) => {
-    const next = FORMATS[cycle(FORMATS, FORMATS.findIndex((f) => f.key === workingFormat), delta)];
-    setWorkingFormat(next.key);
+  const pickFormat = (key: FormatKey) => {
+    if (key === workingFormat) return;
+    const next = findFormat(key);
+    setWorkingFormat(key);
     setWorkingAspectId(next.aspects[0].id);
     if (!next.focalLengths.includes(workingFocal)) {
       setWorkingFocal(next.aspects[0].standardFL);
     }
   };
 
-  const cycleAspect = (delta: number) => {
-    const next = fmtDef.aspects[cycle(fmtDef.aspects, aspectIdx, delta)];
-    setWorkingAspectId(next.id);
-  };
-
-  const cycleFocal = (delta: number) => {
-    const next = fmtDef.focalLengths[cycle(fmtDef.focalLengths, focalIdx, delta)];
-    setWorkingFocal(next);
-  };
+  const pickAspect = (id: string) => setWorkingAspectId(id);
+  const pickFocal = (mm: number) => setWorkingFocal(mm);
 
   const commitAndClose = () => {
     setFilm(workingFilm);
@@ -130,130 +212,128 @@ export function FilmSelectionSheet() {
     close();
   };
 
-  const currentAspect = fmtDef.aspects[aspectIdx];
-
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
-      {/* backdrop */}
       <button
         aria-label="Close film selection"
         onClick={close}
         className="absolute inset-0 bg-black/30"
       />
 
-      <div className="relative bg-white rounded-t-[16px] max-h-[90vh] overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
-        <div className="flex flex-col gap-8 items-center p-6">
-          {/* Category nav */}
-          <div className="flex items-center justify-between w-[260px]">
-            <button onClick={() => cycleCategory(-1)} className="p-2 text-ink" aria-label="Previous category">
-              <Chevron dir="left" />
-            </button>
-            <span className="text-[14px] font-semibold tracking-tight">
-              {CATEGORY_LABEL[category]}
-            </span>
-            <button onClick={() => cycleCategory(1)} className="p-2 text-ink" aria-label="Next category">
-              <Chevron dir="right" />
-            </button>
-          </div>
+      <div className="relative bg-white rounded-t-[16px] max-h-[92vh] flex flex-col shadow-[0_-8px_24px_rgba(0,0,0,0.08)]">
+        {/* Drag handle */}
+        <div className="shrink-0 flex items-center justify-center pt-2 pb-1">
+          <div className="w-9 h-1 rounded-full bg-grey-200" />
+        </div>
 
-          {/* Film carousel */}
-          <div className="w-full flex flex-col gap-4 items-center">
-            <div className="bg-grey-100 h-[137px] w-full rounded-[4px]" />
-            <div className="flex items-center justify-between w-full">
-              <button onClick={() => cycleFilm(-1)} className="p-2 text-ink" aria-label="Previous film">
-                <Chevron dir="left" />
-              </button>
-              <span className="text-[28px] font-semibold tracking-tight text-center flex-1">
-                {workingFilm.film}
-              </span>
-              <button onClick={() => cycleFilm(1)} className="p-2 text-ink" aria-label="Next film">
-                <Chevron dir="right" />
-              </button>
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-6 pt-2 pb-4 flex flex-col gap-6">
+          {/* FILM */}
+          <section className="flex flex-col gap-3">
+            <SectionHeader>Film</SectionHeader>
+            <TabRow>
+              {availableCategories.map((c) => (
+                <Tab key={c} selected={category === c} onClick={() => pickCategory(c)}>
+                  {CATEGORY_SHORT[c]}
+                </Tab>
+              ))}
+            </TabRow>
+            <div className="grid grid-cols-3 gap-2">
+              {groups.map((g) => (
+                <FilmCard
+                  key={g.key}
+                  group={g}
+                  selected={
+                    g.manufacturer === workingFilm.manufacturer && g.film === workingFilm.film
+                  }
+                  onClick={() => pickFilmGroup(g)}
+                />
+              ))}
             </div>
-            <div className="flex flex-col items-center w-full gap-1">
-              <div className="flex items-center gap-4">
-                {currentGroup && currentGroup.stocks.length > 1 ? (
-                  <>
-                    <button onClick={() => cycleEI(-1)} className="p-1 text-ink-soft text-[14px]" aria-label="Previous EI">
-                      −
-                    </button>
-                    <span className="text-[14px] font-semibold tracking-tight">
-                      @ ISO {workingFilm.ei}
-                    </span>
-                    <button onClick={() => cycleEI(1)} className="p-1 text-ink-soft text-[14px]" aria-label="Next EI">
-                      +
-                    </button>
-                  </>
-                ) : (
-                  <span className="text-[14px] font-semibold tracking-tight">
-                    @ ISO {workingFilm.ei}
-                  </span>
+          </section>
+
+          {/* RATING */}
+          {currentGroup && (
+            <section className="flex flex-col gap-2">
+              <div className="flex items-baseline justify-between">
+                <SectionHeader>Rating</SectionHeader>
+                {category !== 'digital' && (
+                  <span className="text-[11px] text-ink-soft">Locked once loaded</span>
                 )}
               </div>
-              {category !== 'digital' && (
-                <span className="text-[11px] text-ink-soft tracking-tight pt-1">
-                  Rated for this roll — ISO is locked once loaded.
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="h-px w-full bg-grey-100" />
-
-          {/* Format */}
-          <div className="flex items-center justify-between w-[200px]">
-            <button onClick={() => cycleFormat(-1)} className="p-2 text-ink" aria-label="Previous format">
-              <Chevron dir="left" />
-            </button>
-            <span className="text-[14px] font-semibold tracking-tight">{fmtDef.label}</span>
-            <button onClick={() => cycleFormat(1)} className="p-2 text-ink" aria-label="Next format">
-              <Chevron dir="right" />
-            </button>
-          </div>
-
-          {/* Aspect carousel */}
-          <div className="flex items-center justify-center gap-6 w-full">
-            <button onClick={() => cycleAspect(-1)} className="p-2 text-ink" aria-label="Previous aspect">
-              <Chevron dir="left" />
-            </button>
-            <div className="flex flex-col items-center gap-2 w-[120px]">
-              <div
-                className="bg-ink"
-                style={{
-                  width: currentAspect.aspect >= 1 ? '60px' : `${60 * currentAspect.aspect}px`,
-                  height: currentAspect.aspect >= 1 ? `${60 / currentAspect.aspect}px` : '60px',
-                }}
-              />
-              <div className="text-[16px] font-semibold tracking-tight text-center">
-                {currentAspect.name}
+              <div className="flex gap-1.5 flex-wrap">
+                {currentGroup.stocks.map((s) => (
+                  <Chip
+                    key={s.id}
+                    selected={s.ei === workingFilm.ei}
+                    onClick={() => pickEI(s)}
+                  >
+                    ISO {s.ei}
+                  </Chip>
+                ))}
               </div>
-              <div className="text-[13px] text-ink-soft">{currentAspect.ratio}</div>
+            </section>
+          )}
+
+          {/* FORMAT */}
+          <section className="flex flex-col gap-3">
+            <SectionHeader>Format</SectionHeader>
+            <TabRow>
+              {FORMATS.map((f) => (
+                <Tab
+                  key={f.key}
+                  selected={workingFormat === f.key}
+                  onClick={() => pickFormat(f.key)}
+                >
+                  {FORMAT_SHORT[f.key]}
+                </Tab>
+              ))}
+            </TabRow>
+            <div
+              className="flex gap-2 overflow-x-auto -mx-6 px-6 pb-1 scrollbar-none"
+              style={{ scrollbarWidth: 'none' }}
+            >
+              {fmtDef.aspects.map((a) => (
+                <AspectCard
+                  key={a.id}
+                  aspect={a.aspect}
+                  name={a.name}
+                  ratio={a.ratio}
+                  selected={workingAspectId === a.id}
+                  onClick={() => pickAspect(a.id)}
+                />
+              ))}
             </div>
-            <button onClick={() => cycleAspect(1)} className="p-2 text-ink" aria-label="Next aspect">
-              <Chevron dir="right" />
-            </button>
-          </div>
+          </section>
 
-          <div className="h-px w-full bg-grey-100" />
-
-          {/* Focal length */}
-          <div className="flex flex-col items-center gap-4 w-full">
-            <div className="text-[14px] font-semibold tracking-tight">FOCAL LENGTH</div>
-            <div className="flex items-center justify-between w-full">
-              <button onClick={() => cycleFocal(-1)} className="p-2 text-ink" aria-label="Shorter focal length">
-                <Chevron dir="left" />
-              </button>
-              <span className="text-[21px] font-semibold tracking-tight">{workingFocal}mm</span>
-              <button onClick={() => cycleFocal(1)} className="p-2 text-ink" aria-label="Longer focal length">
-                <Chevron dir="right" />
-              </button>
+          {/* FOCAL LENGTH */}
+          <section className="flex flex-col gap-3">
+            <SectionHeader>Focal Length</SectionHeader>
+            <div
+              className="flex gap-1.5 overflow-x-auto -mx-6 px-6 pb-1 scrollbar-none"
+              style={{ scrollbarWidth: 'none' }}
+            >
+              {fmtDef.focalLengths.map((mm) => (
+                <Chip
+                  key={mm}
+                  selected={workingFocal === mm}
+                  onClick={() => pickFocal(mm)}
+                >
+                  {mm}mm
+                </Chip>
+              ))}
             </div>
-          </div>
+          </section>
+        </div>
 
-          {/* Done */}
+        {/* Done — pinned to bottom */}
+        <div
+          className="shrink-0 px-6 pt-3"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
+        >
           <button
             onClick={commitAndClose}
-            className="w-full bg-accent text-white rounded-[14px] py-3.5 px-5 text-[17px] font-semibold tracking-tight"
+            className="w-full bg-accent text-white rounded-[14px] py-3.5 px-5 text-[17px] font-semibold tracking-tight active:opacity-90"
           >
             Done
           </button>

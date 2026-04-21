@@ -34,11 +34,17 @@ export function PreviewArea({
   children,
   overlay,
 }: PreviewAreaProps) {
+  // Fills parent's available height, derives width from aspect, never exceeds parent width.
   return (
-    <div className="relative w-full max-w-[380px] mx-auto">
+    <div className="relative h-full w-full flex items-center justify-center">
       <div
-        className="relative w-full rounded-[10px] border border-grey-200 overflow-hidden bg-white"
-        style={{ aspectRatio: aspect }}
+        className="relative rounded-[10px] border border-grey-200 overflow-hidden bg-white"
+        style={{
+          aspectRatio: aspect,
+          height: '100%',
+          width: 'auto',
+          maxWidth: '100%',
+        }}
       >
         <video
           ref={videoRef}
@@ -72,10 +78,8 @@ export function PreviewArea({
           </div>
         )}
 
-        {/* Clipping / warning overlays */}
         {isReady && overlay}
 
-        {/* Tap target for freeze toggle (below markers so they stay legible) */}
         {isReady && (
           <button
             type="button"
@@ -86,12 +90,10 @@ export function PreviewArea({
           />
         )}
 
-        {/* Zone markers overlay */}
         {isReady && (
           <div className="absolute inset-0 pointer-events-none z-20">{children}</div>
         )}
 
-        {/* HOLD badge when frozen */}
         {isReady && isFrozen && (
           <div
             className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-ink text-white px-2.5 py-1 rounded-full text-[10px] font-bold pointer-events-none"
