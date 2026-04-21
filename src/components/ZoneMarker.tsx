@@ -13,6 +13,9 @@ export function ZoneMarker({ label, x, y, isClipping }: ZoneMarkerProps) {
         left: `${x * 100}%`,
         top: `${y * 100}%`,
         transform: 'translate(-50%, -50%)',
+        transition:
+          'left 320ms cubic-bezier(0.2, 0.8, 0.2, 1), top 320ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+        willChange: 'left, top',
       }}
       aria-label={`Zone ${label}${isClipping ? ' — clipping' : ''}`}
     >
