@@ -1,5 +1,5 @@
-import { useTonalStore } from '../store/useTonalStore';
-import { findFormat } from '../data/formats';
+import { useTonalStore } from '../../store/useTonalStore';
+import { findFormat } from '../../data/formats';
 
 export function FilmInfoBar() {
   const film = useTonalStore((s) => s.selectedFilm);

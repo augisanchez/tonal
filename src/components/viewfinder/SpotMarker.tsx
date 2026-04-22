@@ -1,4 +1,4 @@
-import { ZONE_LABELS } from '../data/filmStocks';
+import { ZONE_LABELS } from '../../data/filmStocks';
 
 interface SpotMarkerProps {
   x: number;

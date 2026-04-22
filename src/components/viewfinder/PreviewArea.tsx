@@ -1,4 +1,5 @@
 import type { RefObject } from 'react';
+import { CameraIcon, StatusBadge } from '../primitives';
 
 interface PreviewAreaProps {
   videoRef?: RefObject<HTMLVideoElement | null>;
@@ -9,21 +10,15 @@ interface PreviewAreaProps {
   onRequestCamera: () => void;
   isFrozen: boolean;
   isSpotModeActive: boolean;
-  /** Called on tap when camera is ready. x/y normalized 0..1 within the visible preview. */
+  /** x/y normalized within the visible preview. */
   onTap: (x: number, y: number) => void;
   children?: React.ReactNode;
   overlay?: React.ReactNode;
 }
 
-function CameraIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M3 8a2 2 0 0 1 2-2h2.5l1.5-2h6l1.5 2H19a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8Z" />
-      <circle cx="12" cy="13" r="4" />
-    </svg>
-  );
-}
-
+/** Aspect-ratio-cropped viewfinder. Fills parent height; width derives from aspect.
+ *  Stack (back→front): video → overlays (clipping / false color) → tap layer →
+ *  children (zone markers, spot) → state badges (HOLD / SPOT). */
 export function PreviewArea({
   videoRef,
   aspect,
@@ -73,7 +68,10 @@ export function PreviewArea({
                 </p>
               </>
             ) : (
-              <button onClick={onRequestCamera} className="text-[14px] font-semibold text-ink mt-1">
+              <button
+                onClick={onRequestCamera}
+                className="text-[14px] font-semibold text-ink mt-1"
+              >
                 Tap to enable camera
               </button>
             )}
@@ -107,22 +105,14 @@ export function PreviewArea({
         )}
 
         {isReady && isFrozen && (
-          <div
-            className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-ink text-white px-2.5 py-1 rounded-full text-[10px] font-bold pointer-events-none"
-            style={{ letterSpacing: '0.12em' }}
-            aria-hidden
-          >
-            HOLD
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30">
+            <StatusBadge tone="ink">HOLD</StatusBadge>
           </div>
         )}
 
         {isReady && isSpotModeActive && (
-          <div
-            className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-accent text-white px-2.5 py-1 rounded-full text-[10px] font-bold pointer-events-none"
-            style={{ letterSpacing: '0.12em' }}
-            aria-hidden
-          >
-            SPOT
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30">
+            <StatusBadge tone="accent">SPOT</StatusBadge>
           </div>
         )}
       </div>

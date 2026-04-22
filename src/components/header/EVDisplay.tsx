@@ -1,4 +1,5 @@
-import type { ExposureMode } from '../hooks/useExposureRecommendation';
+import type { ExposureMode } from '../../hooks/useExposureRecommendation';
+import { Pill } from '../primitives';
 
 interface EVDisplayProps {
   kelvin: number;
@@ -30,6 +31,8 @@ function formatStopsDelta(d: number): string {
   return `${sign}${Math.abs(d).toFixed(1)}`;
 }
 
+/** Top-center readout: mode / EV / Kelvin plus toggles for CAL, SPOT, FC.
+ *  In Manual mode swaps the DR line for a ± stops-off indicator. */
 export function EVDisplay({
   kelvin,
   sceneDRStops,
@@ -48,7 +51,6 @@ export function EVDisplay({
   const kRounded = Math.round(kelvin / 100) * 100;
   const drRounded = sceneDRStops != null ? Math.round(sceneDRStops * 10) / 10 : null;
   const drOver = drRounded != null ? drRounded > filmDRStops + 0.25 : false;
-
   const evLabel =
     sceneEV != null ? `EV ${(Math.round(sceneEV * 10) / 10).toFixed(1)}` : 'EV —';
 
@@ -65,9 +67,7 @@ export function EVDisplay({
       {mode === 'manual' && sceneEV != null && (
         <span
           className={`text-[11px] leading-[14px] font-semibold mt-0.5 ${
-            Math.abs(deltaStops) < 0.5
-              ? 'text-ink-soft'
-              : 'text-[color:var(--color-warning)]'
+            Math.abs(deltaStops) < 0.5 ? 'text-ink-soft' : 'text-[color:var(--color-warning)]'
           }`}
         >
           {formatStopsDelta(deltaStops)} EV
@@ -85,48 +85,34 @@ export function EVDisplay({
       )}
 
       <div className="flex items-center gap-1 mt-1">
-        <button
-          type="button"
-          onClick={onToggleCalibration}
+        <Pill
+          variant="toggle"
+          active={isCalibrated}
           disabled={!canCalibrate && !isCalibrated}
-          aria-pressed={isCalibrated}
-          aria-label={isCalibrated ? 'Clear calibration' : 'Calibrate to current scene (point at 18% gray)'}
-          className={`text-[9px] font-bold tracking-[0.1em] uppercase px-1.5 py-1 rounded-full leading-none transition-colors ${
-            isCalibrated
-              ? 'bg-accent/15 text-[color:var(--color-accent)]'
-              : canCalibrate
-                ? 'bg-grey-100 text-ink-soft active:bg-grey-200'
-                : 'bg-grey-100/50 text-grey-300'
-          }`}
+          onClick={onToggleCalibration}
+          ariaPressed={isCalibrated}
+          ariaLabel={isCalibrated ? 'Clear calibration' : 'Calibrate to current scene (point at 18% gray)'}
         >
           {isCalibrated ? 'CAL •' : 'CAL'}
-        </button>
-        <button
-          type="button"
+        </Pill>
+        <Pill
+          variant="toggle"
+          active={isSpotModeActive}
           onClick={onToggleSpotMode}
-          aria-pressed={isSpotModeActive}
-          aria-label={isSpotModeActive ? 'Exit spot meter' : 'Enter spot meter mode'}
-          className={`text-[9px] font-bold tracking-[0.1em] uppercase px-1.5 py-1 rounded-full leading-none transition-colors ${
-            isSpotModeActive
-              ? 'bg-accent/15 text-[color:var(--color-accent)]'
-              : 'bg-grey-100 text-ink-soft active:bg-grey-200'
-          }`}
+          ariaPressed={isSpotModeActive}
+          ariaLabel={isSpotModeActive ? 'Exit spot meter' : 'Enter spot meter mode'}
         >
           SPOT
-        </button>
-        <button
-          type="button"
+        </Pill>
+        <Pill
+          variant="toggle"
+          active={isFalseColorActive}
           onClick={onToggleFalseColor}
-          aria-pressed={isFalseColorActive}
-          aria-label={isFalseColorActive ? 'Hide false color overlay' : 'Show false color overlay'}
-          className={`text-[9px] font-bold tracking-[0.1em] uppercase px-1.5 py-1 rounded-full leading-none transition-colors ${
-            isFalseColorActive
-              ? 'bg-accent/15 text-[color:var(--color-accent)]'
-              : 'bg-grey-100 text-ink-soft active:bg-grey-200'
-          }`}
+          ariaPressed={isFalseColorActive}
+          ariaLabel={isFalseColorActive ? 'Hide false color overlay' : 'Show false color overlay'}
         >
           FC
-        </button>
+        </Pill>
       </div>
     </div>
   );

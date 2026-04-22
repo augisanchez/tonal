@@ -1,72 +1,28 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useTonalStore } from '../store/useTonalStore';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useTonalStore } from '../../store/useTonalStore';
 import {
   CATEGORY_ORDER,
   CATEGORY_SHORT,
   FILM_STOCKS,
   groupFilmsByCategory,
   type FilmGroup,
-} from '../data/filmStocks';
-import { FORMAT_SHORT, FORMATS, findFormat } from '../data/formats';
-import type { FilmCategory, FilmStock, FormatKey } from '../types';
+} from '../../data/filmStocks';
+import { FORMAT_SHORT, FORMATS, findFormat } from '../../data/formats';
+import type { FilmCategory, FilmStock, FormatKey } from '../../types';
+import { Pill, SectionHeader } from '../primitives';
 
-// ── Primitives ──────────────────────────────────────────────────────────
+// ── Sheet-local helpers ─────────────────────────────────────────────────
 
-function SectionHeader({ children }: { children: React.ReactNode }) {
+/** Horizontal scrolling strip used by tab and chip rows. Bleeds into the sheet's
+ *  padding so the first/last item can sit flush with the edge. */
+function ScrollRow({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
   return (
-    <div className="text-[11px] font-semibold tracking-[0.12em] text-ink-soft uppercase">
-      {children}
-    </div>
-  );
-}
-
-function TabRow({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex gap-1.5 overflow-x-auto -mx-6 px-6 scrollbar-none" style={{ scrollbarWidth: 'none' }}>
-      {children}
-    </div>
-  );
-}
-
-function Tab({
-  selected,
-  onClick,
-  children,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`shrink-0 px-4 py-2 rounded-full text-[13px] font-semibold tracking-tight whitespace-nowrap transition-colors ${
-        selected ? 'bg-ink text-white' : 'bg-grey-100 text-ink active:bg-grey-200'
-      }`}
+    <div
+      className={`flex overflow-x-auto -mx-6 px-6 pb-0.5 scrollbar-none ${wide ? 'gap-2' : 'gap-1.5'}`}
+      style={{ scrollbarWidth: 'none' }}
     >
       {children}
-    </button>
-  );
-}
-
-function Chip({
-  selected,
-  onClick,
-  children,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`shrink-0 px-3 py-1.5 rounded-full text-[13px] font-semibold tracking-tight whitespace-nowrap transition-colors ${
-        selected ? 'bg-ink text-white' : 'bg-grey-100 text-ink active:bg-grey-200'
-      }`}
-    >
-      {children}
-    </button>
+    </div>
   );
 }
 
@@ -106,7 +62,7 @@ function AspectCard({
   selected: boolean;
   onClick: () => void;
 }) {
-  // Visual rectangle — always portrait-oriented to match the viewfinder
+  // Always render the rectangle in portrait orientation to match the viewfinder
   const portrait = aspect >= 1 ? 1 / aspect : aspect;
   const w = portrait >= 1 ? 52 : Math.round(52 * portrait);
   const h = portrait >= 1 ? Math.round(52 / portrait) : 52;
@@ -169,8 +125,9 @@ export function FilmSelectionSheet() {
 
   const groups = useMemo(() => groupFilmsByCategory(category), [category]);
   const currentGroup =
-    groups.find((g) => g.manufacturer === workingFilm.manufacturer && g.film === workingFilm.film) ??
-    groups[0];
+    groups.find(
+      (g) => g.manufacturer === workingFilm.manufacturer && g.film === workingFilm.film,
+    ) ?? groups[0];
 
   const fmtDef = findFormat(workingFormat);
 
@@ -183,13 +140,8 @@ export function FilmSelectionSheet() {
     if (firstGroup) setWorkingFilm(firstGroup.stocks[0]);
   };
 
-  const pickFilmGroup = (g: FilmGroup) => {
-    setWorkingFilm(g.stocks[0]);
-  };
-
-  const pickEI = (stock: FilmStock) => {
-    setWorkingFilm(stock);
-  };
+  const pickFilmGroup = (g: FilmGroup) => setWorkingFilm(g.stocks[0]);
+  const pickEI = (stock: FilmStock) => setWorkingFilm(stock);
 
   const pickFormat = (key: FormatKey) => {
     if (key === workingFormat) return;
@@ -231,13 +183,18 @@ export function FilmSelectionSheet() {
           {/* FILM */}
           <section className="flex flex-col gap-3">
             <SectionHeader>Film</SectionHeader>
-            <TabRow>
+            <ScrollRow>
               {availableCategories.map((c) => (
-                <Tab key={c} selected={category === c} onClick={() => pickCategory(c)}>
+                <Pill
+                  key={c}
+                  variant="tab"
+                  selected={category === c}
+                  onClick={() => pickCategory(c)}
+                >
                   {CATEGORY_SHORT[c]}
-                </Tab>
+                </Pill>
               ))}
-            </TabRow>
+            </ScrollRow>
             <div className="grid grid-cols-3 gap-2">
               {groups.map((g) => (
                 <FilmCard
@@ -255,18 +212,19 @@ export function FilmSelectionSheet() {
           {/* RATING / ISO */}
           {currentGroup && currentGroup.stocks.length > 1 && (
             <section className="flex flex-col gap-2">
-              <div className="flex items-baseline justify-between">
-                <SectionHeader>{category === 'digital' ? 'ISO' : 'Rating (Push / Pull)'}</SectionHeader>
-              </div>
+              <SectionHeader>
+                {category === 'digital' ? 'ISO' : 'Rating (Push / Pull)'}
+              </SectionHeader>
               <div className="flex gap-1.5 flex-wrap">
                 {currentGroup.stocks.map((s) => (
-                  <Chip
+                  <Pill
                     key={s.id}
+                    variant="chip"
                     selected={s.ei === workingFilm.ei}
                     onClick={() => pickEI(s)}
                   >
                     ISO {s.ei}
-                  </Chip>
+                  </Pill>
                 ))}
               </div>
             </section>
@@ -275,21 +233,19 @@ export function FilmSelectionSheet() {
           {/* FORMAT */}
           <section className="flex flex-col gap-3">
             <SectionHeader>Format</SectionHeader>
-            <TabRow>
+            <ScrollRow>
               {FORMATS.map((f) => (
-                <Tab
+                <Pill
                   key={f.key}
+                  variant="tab"
                   selected={workingFormat === f.key}
                   onClick={() => pickFormat(f.key)}
                 >
                   {FORMAT_SHORT[f.key]}
-                </Tab>
+                </Pill>
               ))}
-            </TabRow>
-            <div
-              className="flex gap-2 overflow-x-auto -mx-6 px-6 pb-1 scrollbar-none"
-              style={{ scrollbarWidth: 'none' }}
-            >
+            </ScrollRow>
+            <ScrollRow wide>
               {fmtDef.aspects.map((a) => (
                 <AspectCard
                   key={a.id}
@@ -300,26 +256,24 @@ export function FilmSelectionSheet() {
                   onClick={() => pickAspect(a.id)}
                 />
               ))}
-            </div>
+            </ScrollRow>
           </section>
 
           {/* FOCAL LENGTH */}
           <section className="flex flex-col gap-3">
             <SectionHeader>Focal Length</SectionHeader>
-            <div
-              className="flex gap-1.5 overflow-x-auto -mx-6 px-6 pb-1 scrollbar-none"
-              style={{ scrollbarWidth: 'none' }}
-            >
+            <ScrollRow>
               {fmtDef.focalLengths.map((mm) => (
-                <Chip
+                <Pill
                   key={mm}
+                  variant="chip"
                   selected={workingFocal === mm}
                   onClick={() => pickFocal(mm)}
                 >
                   {mm}mm
-                </Chip>
+                </Pill>
               ))}
-            </div>
+            </ScrollRow>
           </section>
         </div>
 

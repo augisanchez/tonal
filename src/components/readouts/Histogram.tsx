@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { FrameAnalysis } from '../hooks/useFrameAnalysis';
+import type { FrameAnalysis } from '../../hooks/useFrameAnalysis';
 
 interface HistogramProps {
   analysis: FrameAnalysis | null;

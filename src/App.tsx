@@ -6,32 +6,45 @@ import { deriveZoneMarkers } from './hooks/useZoneEngine';
 import { useCamera } from './hooks/useCamera';
 import { useFrameAnalysis } from './hooks/useFrameAnalysis';
 import { computeExposureRecommendation } from './hooks/useExposureRecommendation';
-import { PreviewArea } from './components/PreviewArea';
-import { ZoneMarker } from './components/ZoneMarker';
-import { SpotMarker } from './components/SpotMarker';
-import { ClippingOverlay } from './components/ClippingOverlay';
-import { FalseColorOverlay } from './components/FalseColorOverlay';
-import { EVDisplay } from './components/EVDisplay';
-import { ShadowWarningButton, HighlightWarningButton } from './components/WarningIcons';
-import { FilmInfoBar } from './components/FilmInfoBar';
-import { ApertureSlider } from './components/ApertureSlider';
-import { ShutterSlider } from './components/ShutterSlider';
-import { IsoSlider } from './components/IsoSlider';
-import { ExpCompSlider } from './components/ExpCompSlider';
-import { FilmSelectionSheet } from './components/FilmSelectionSheet';
-import { Histogram } from './components/Histogram';
-import { OnboardingCarousel } from './components/OnboardingCarousel';
-import { LandscapeOverlay } from './components/LandscapeOverlay';
+
+import {
+  EVDisplay,
+  ShadowWarningButton,
+  HighlightWarningButton,
+} from './components/header';
+import {
+  PreviewArea,
+  ZoneMarker,
+  SpotMarker,
+  ClippingOverlay,
+  FalseColorOverlay,
+} from './components/viewfinder';
+import { Histogram, PresetDots } from './components/readouts';
+import {
+  FilmInfoBar,
+  ApertureSlider,
+  ShutterSlider,
+  IsoSlider,
+  ExpCompSlider,
+} from './components/controls';
+import {
+  FilmSelectionSheet,
+  OnboardingCarousel,
+  LandscapeOverlay,
+} from './components/sheets';
 
 function fovZoom(focalLength: number, standardFL: number): number {
   return Math.max(1, focalLength / standardFL);
 }
 
+/** Formats are stored in native (landscape) orientation. Phone is portrait,
+ *  so aspects ≥ 1 invert for the viewfinder. */
 function toPortraitAspect(nativeAspect: number): number {
   return nativeAspect >= 1 ? 1 / nativeAspect : nativeAspect;
 }
 
 export default function App() {
+  // ── Store selectors ──────────────────────────────────────────────────
   const film = useTonalStore((s) => s.selectedFilm);
   const aperture = useTonalStore((s) => s.aperture);
   const shutter = useTonalStore((s) => s.shutter);
@@ -55,11 +68,13 @@ export default function App() {
   const isFalseColorActive = useTonalStore((s) => s.isFalseColorActive);
   const toggleFalseColor = useTonalStore((s) => s.toggleFalseColor);
 
+  // ── Derived layout values ────────────────────────────────────────────
   const fmt = findFormat(formatKey);
   const aspectOpt = fmt.aspects.find((a) => a.id === aspectId) ?? fmt.aspects[0];
   const zoom = fovZoom(focalLength, aspectOpt.standardFL);
   const displayAspect = toPortraitAspect(aspectOpt.aspect);
 
+  // ── Camera + scene analysis ──────────────────────────────────────────
   const { videoRef, canvasRef, isReady, isPermissionDenied, requestCamera } = useCamera();
 
   const analysis = useFrameAnalysis({
@@ -73,6 +88,7 @@ export default function App() {
     active: !isFrozen,
   });
 
+  // ── Exposure recommendation ──────────────────────────────────────────
   const availableISOs = useMemo(
     () =>
       FILM_STOCKS.filter(
@@ -98,6 +114,7 @@ export default function App() {
 
   const zones = deriveZoneMarkers(film, expComp, analysis);
 
+  // ── Preview interactions ─────────────────────────────────────────────
   const handlePreviewTap = useCallback(
     (x: number, y: number) => {
       if (isSpotModeActive) {
@@ -133,8 +150,10 @@ export default function App() {
     }
   }, [calibrationMedianLog, analysis, setCalibrationMedianLog]);
 
+  // ── Render ───────────────────────────────────────────────────────────
   return (
     <div className="h-[100svh] w-full bg-white text-ink font-sans flex justify-center overflow-hidden">
+      {/* Hidden canvas lives here so useFrameAnalysis owns its dimensions. */}
       <canvas ref={canvasRef} className="hidden" />
 
       <div
@@ -144,6 +163,7 @@ export default function App() {
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
+        {/* Header — warnings flanking the reading */}
         <header className="shrink-0 flex items-start justify-between px-6 pt-2 pb-1">
           <ShadowWarningButton />
           <EVDisplay
@@ -164,6 +184,7 @@ export default function App() {
           <HighlightWarningButton />
         </header>
 
+        {/* Viewfinder — fills remaining vertical space */}
         <section className="flex-1 min-h-0 flex items-center justify-center px-6 py-2">
           <PreviewArea
             videoRef={videoRef}
@@ -197,6 +218,7 @@ export default function App() {
           </PreviewArea>
         </section>
 
+        {/* Readouts below the viewfinder */}
         <div className="shrink-0 px-6 pt-1">
           <Histogram
             analysis={analysis}
@@ -204,13 +226,11 @@ export default function App() {
             filmMaxZone={film.maxZone}
           />
         </div>
-
-        <div className="shrink-0 flex items-center justify-center gap-2 py-1" aria-hidden>
-          <span className="w-2 h-2 rounded-full bg-ink" />
-          <span className="w-2 h-2 rounded-full bg-grey-200" />
-          <span className="text-[10px] text-grey-300 pl-1">+</span>
+        <div className="shrink-0">
+          <PresetDots />
         </div>
 
+        {/* Film info + exposure controls */}
         <section className="shrink-0 px-6 flex flex-col gap-2 pb-4">
           <FilmInfoBar />
           <ApertureSlider effectiveValue={rec.aperture} isAuto={!isApertureLocked} />
@@ -220,6 +240,7 @@ export default function App() {
         </section>
       </div>
 
+      {/* Overlay surfaces */}
       <FilmSelectionSheet />
       <OnboardingCarousel />
       <LandscapeOverlay />

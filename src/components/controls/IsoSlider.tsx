@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
-import { useTonalStore } from '../store/useTonalStore';
-import { FILM_STOCKS } from '../data/filmStocks';
-import { TickSlider } from './TickSlider';
-import { AutoBadge } from './AutoBadge';
+import { useTonalStore } from '../../store/useTonalStore';
+import { FILM_STOCKS } from '../../data/filmStocks';
+import { ValueSliderRow } from './ValueSliderRow';
 
 interface IsoSliderProps {
   effectiveValue: number;
@@ -27,26 +26,22 @@ export function IsoSlider({ effectiveValue, isAuto }: IsoSliderProps) {
   const displayIndex = scrub != null ? Math.round(scrub) : effectiveIndex;
   const displayValue = eis[displayIndex] ?? effectiveValue;
 
+  // Single-variant films don't need a slider — ISO is effectively locked.
   if (eis.length <= 1) return null;
 
   return (
-    <div className="relative w-full flex items-center justify-center p-2">
-      <div className="absolute inset-x-6 top-1/2 -translate-y-1/2">
-        <TickSlider
-          count={eis.length}
-          index={effectiveIndex}
-          onChange={(i) => {
-            setScrub(null);
-            setISO(eis[i]);
-          }}
-          onScrub={setScrub}
-          onDoubleTap={() => setIsoLocked(false)}
-        />
-      </div>
-      <div className="bg-white px-3 relative z-[1] flex items-baseline gap-1.5 text-[24px] leading-[22px] tracking-tight tabular-nums">
-        {isAuto && <AutoBadge />}
-        <span>ISO {displayValue}</span>
-      </div>
-    </div>
+    <ValueSliderRow
+      count={eis.length}
+      index={effectiveIndex}
+      onChange={(i) => {
+        setScrub(null);
+        setISO(eis[i]);
+      }}
+      onScrub={setScrub}
+      onDoubleTap={() => setIsoLocked(false)}
+      isAuto={isAuto}
+    >
+      <span className="tabular-nums">ISO {displayValue}</span>
+    </ValueSliderRow>
   );
 }

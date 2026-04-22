@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { FrameAnalysis } from '../hooks/useFrameAnalysis';
+import type { FrameAnalysis } from '../../hooks/useFrameAnalysis';
 
 interface FalseColorOverlayProps {
   analysis: FrameAnalysis | null;

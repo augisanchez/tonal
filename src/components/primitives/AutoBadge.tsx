@@ -1,3 +1,5 @@
+/** Small "AUTO" indicator shown next to slider values when the meter
+ *  is recommending the displayed value instead of using the user's lock. */
 export function AutoBadge() {
   return (
     <span

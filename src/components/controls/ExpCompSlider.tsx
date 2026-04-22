@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useTonalStore } from '../store/useTonalStore';
-import { EXP_COMP_STEPS, formatExpComp } from '../data/exposureScales';
+import { useTonalStore } from '../../store/useTonalStore';
+import { EXP_COMP_STEPS, formatExpComp } from '../../data/exposureScales';
 import { TickSlider } from './TickSlider';
 
 function nearestIndex(v: number): number {

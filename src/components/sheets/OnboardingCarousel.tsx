@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MeterIcon, ZonesIcon, ShieldIcon, SlidersIcon } from '../primitives';
 
 const STORAGE_KEY = 'tonal_onboarded_v1';
 
@@ -6,50 +7,6 @@ interface Slide {
   title: string;
   body: string;
   Icon: React.FC<{ className?: string }>;
-}
-
-function MeterIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 64 64" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
-      <circle cx="32" cy="32" r="22" />
-      <path d="M32 12v4M32 48v4M12 32h4M48 32h4M18 18l3 3M46 46l-3-3M18 46l3-3M46 18l-3 3" />
-      <path d="M32 32l10-6" strokeLinecap="round" strokeWidth="2.5" />
-      <circle cx="32" cy="32" r="2" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ZonesIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 64 64" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="8" y="12" width="48" height="40" rx="4" />
-      <circle cx="20" cy="28" r="6" />
-      <circle cx="42" cy="22" r="6" />
-      <circle cx="32" cy="42" r="6" />
-    </svg>
-  );
-}
-
-function ProtectIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 64 64" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M32 8l20 6v14c0 12-8 22-20 28-12-6-20-16-20-28V14l20-6z" />
-      <path d="M24 32l6 6 12-14" strokeLinecap="round" strokeWidth="2.5" />
-    </svg>
-  );
-}
-
-function ControlIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 64 64" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
-      <line x1="8" y1="20" x2="56" y2="20" />
-      <circle cx="40" cy="20" r="5" fill="currentColor" stroke="none" />
-      <line x1="8" y1="32" x2="56" y2="32" />
-      <circle cx="20" cy="32" r="5" fill="currentColor" stroke="none" />
-      <line x1="8" y1="44" x2="56" y2="44" />
-      <circle cx="32" cy="44" r="5" fill="currentColor" stroke="none" />
-    </svg>
-  );
 }
 
 const SLIDES: Slide[] = [
@@ -64,12 +21,12 @@ const SLIDES: Slide[] = [
     body: 'Tonal shows where shadows, midtones, and highlights fall across your frame in real time.',
   },
   {
-    Icon: ProtectIcon,
+    Icon: ShieldIcon,
     title: 'Protect detail',
-    body: 'Warnings appear when tones fall outside your film’s latitude — so you can shoot with intent.',
+    body: "Warnings appear when tones fall outside your film's latitude — so you can shoot with intent.",
   },
   {
-    Icon: ControlIcon,
+    Icon: SlidersIcon,
     title: 'Stay in control',
     body: 'Drag any slider to lock a value. Double-tap to return to auto. Classic meter control, zone-system smarts.',
   },
