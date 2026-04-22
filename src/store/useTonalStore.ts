@@ -32,6 +32,9 @@ interface TonalState {
   isSpotModeActive: boolean;
   spotPosition: { x: number; y: number } | null;
 
+  /** False-color view: overlay each cell with a zone-keyed color. */
+  isFalseColorActive: boolean;
+
   setFilm: (film: FilmStock) => void;
   /** Change ISO within the currently selected film group. Locks ISO. */
   setISO: (ei: number) => void;
@@ -58,6 +61,8 @@ interface TonalState {
 
   toggleSpotMode: () => void;
   setSpotPosition: (p: { x: number; y: number } | null) => void;
+
+  toggleFalseColor: () => void;
 }
 
 const defaultFilm =
@@ -92,6 +97,8 @@ export const useTonalStore = create<TonalState>((set) => ({
 
   isSpotModeActive: false,
   spotPosition: null,
+
+  isFalseColorActive: false,
 
   setFilm: (film) => set({ selectedFilm: film, isIsoLocked: true }),
   setISO: (ei) =>
@@ -138,4 +145,6 @@ export const useTonalStore = create<TonalState>((set) => ({
       spotPosition: s.isSpotModeActive ? null : s.spotPosition,
     })),
   setSpotPosition: (p) => set({ spotPosition: p }),
+
+  toggleFalseColor: () => set((s) => ({ isFalseColorActive: !s.isFalseColorActive })),
 }));

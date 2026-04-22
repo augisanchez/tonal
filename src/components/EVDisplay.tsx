@@ -12,6 +12,8 @@ interface EVDisplayProps {
   onToggleCalibration: () => void;
   isSpotModeActive: boolean;
   onToggleSpotMode: () => void;
+  isFalseColorActive: boolean;
+  onToggleFalseColor: () => void;
 }
 
 const MODE_LABEL: Record<ExposureMode, string> = {
@@ -40,6 +42,8 @@ export function EVDisplay({
   onToggleCalibration,
   isSpotModeActive,
   onToggleSpotMode,
+  isFalseColorActive,
+  onToggleFalseColor,
 }: EVDisplayProps) {
   const kRounded = Math.round(kelvin / 100) * 100;
   const drRounded = sceneDRStops != null ? Math.round(sceneDRStops * 10) / 10 : null;
@@ -109,6 +113,19 @@ export function EVDisplay({
           }`}
         >
           SPOT
+        </button>
+        <button
+          type="button"
+          onClick={onToggleFalseColor}
+          aria-pressed={isFalseColorActive}
+          aria-label={isFalseColorActive ? 'Hide false color overlay' : 'Show false color overlay'}
+          className={`text-[9px] font-bold tracking-[0.1em] uppercase px-1.5 py-1 rounded-full leading-none transition-colors ${
+            isFalseColorActive
+              ? 'bg-accent/15 text-[color:var(--color-accent)]'
+              : 'bg-grey-100 text-ink-soft active:bg-grey-200'
+          }`}
+        >
+          FC
         </button>
       </div>
     </div>

@@ -10,6 +10,7 @@ import { PreviewArea } from './components/PreviewArea';
 import { ZoneMarker } from './components/ZoneMarker';
 import { SpotMarker } from './components/SpotMarker';
 import { ClippingOverlay } from './components/ClippingOverlay';
+import { FalseColorOverlay } from './components/FalseColorOverlay';
 import { EVDisplay } from './components/EVDisplay';
 import { ShadowWarningButton, HighlightWarningButton } from './components/WarningIcons';
 import { FilmInfoBar } from './components/FilmInfoBar';
@@ -18,6 +19,9 @@ import { ShutterSlider } from './components/ShutterSlider';
 import { IsoSlider } from './components/IsoSlider';
 import { ExpCompSlider } from './components/ExpCompSlider';
 import { FilmSelectionSheet } from './components/FilmSelectionSheet';
+import { Histogram } from './components/Histogram';
+import { OnboardingCarousel } from './components/OnboardingCarousel';
+import { LandscapeOverlay } from './components/LandscapeOverlay';
 
 function fovZoom(focalLength: number, standardFL: number): number {
   return Math.max(1, focalLength / standardFL);
@@ -48,6 +52,8 @@ export default function App() {
   const toggleSpotMode = useTonalStore((s) => s.toggleSpotMode);
   const spotPosition = useTonalStore((s) => s.spotPosition);
   const setSpotPosition = useTonalStore((s) => s.setSpotPosition);
+  const isFalseColorActive = useTonalStore((s) => s.isFalseColorActive);
+  const toggleFalseColor = useTonalStore((s) => s.toggleFalseColor);
 
   const fmt = findFormat(formatKey);
   const aspectOpt = fmt.aspects.find((a) => a.id === aspectId) ?? fmt.aspects[0];
@@ -92,7 +98,6 @@ export default function App() {
 
   const zones = deriveZoneMarkers(film, expComp, analysis);
 
-  // Preview tap: spot meter places a spot; otherwise toggles freeze.
   const handlePreviewTap = useCallback(
     (x: number, y: number) => {
       if (isSpotModeActive) {
@@ -104,7 +109,6 @@ export default function App() {
     [isSpotModeActive, setSpotPosition, toggleFrozen],
   );
 
-  // Spot meter reading: read the zone of the grid cell at the tapped position.
   const spotZone = useMemo(() => {
     if (!spotPosition || !analysis) return null;
     const col = Math.max(
@@ -154,6 +158,8 @@ export default function App() {
             onToggleCalibration={onToggleCalibration}
             isSpotModeActive={isSpotModeActive}
             onToggleSpotMode={toggleSpotMode}
+            isFalseColorActive={isFalseColorActive}
+            onToggleFalseColor={toggleFalseColor}
           />
           <HighlightWarningButton />
         </header>
@@ -170,13 +176,16 @@ export default function App() {
             isSpotModeActive={isSpotModeActive}
             onTap={handlePreviewTap}
             overlay={
-              <ClippingOverlay
-                analysis={analysis}
-                minZone={film.minZone}
-                maxZone={film.maxZone}
-                showShadow={shadowWarning}
-                showHighlight={highlightWarning}
-              />
+              <>
+                <FalseColorOverlay analysis={analysis} active={isFalseColorActive} />
+                <ClippingOverlay
+                  analysis={analysis}
+                  minZone={film.minZone}
+                  maxZone={film.maxZone}
+                  showShadow={shadowWarning}
+                  showHighlight={highlightWarning}
+                />
+              </>
             }
           >
             {zones.map((z) => (
@@ -187,6 +196,14 @@ export default function App() {
             )}
           </PreviewArea>
         </section>
+
+        <div className="shrink-0 px-6 pt-1">
+          <Histogram
+            analysis={analysis}
+            filmMinZone={film.minZone}
+            filmMaxZone={film.maxZone}
+          />
+        </div>
 
         <div className="shrink-0 flex items-center justify-center gap-2 py-1" aria-hidden>
           <span className="w-2 h-2 rounded-full bg-ink" />
@@ -204,6 +221,8 @@ export default function App() {
       </div>
 
       <FilmSelectionSheet />
+      <OnboardingCarousel />
+      <LandscapeOverlay />
     </div>
   );
 }
