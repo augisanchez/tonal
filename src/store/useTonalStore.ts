@@ -24,6 +24,14 @@ interface TonalState {
   isShutterLocked: boolean;
   isIsoLocked: boolean;
 
+  /** log2(scene median linear luminance) captured during a gray-card tap.
+   *  null = no user calibration; the meter falls back to theoretical 18% gray. */
+  calibrationMedianLog: number | null;
+
+  /** Spot meter: when active, tapping the preview marks a point and reads that cell. */
+  isSpotModeActive: boolean;
+  spotPosition: { x: number; y: number } | null;
+
   setFilm: (film: FilmStock) => void;
   /** Change ISO within the currently selected film group. Locks ISO. */
   setISO: (ei: number) => void;
@@ -45,6 +53,11 @@ interface TonalState {
   setApertureLocked: (v: boolean) => void;
   setShutterLocked: (v: boolean) => void;
   setIsoLocked: (v: boolean) => void;
+
+  setCalibrationMedianLog: (v: number | null) => void;
+
+  toggleSpotMode: () => void;
+  setSpotPosition: (p: { x: number; y: number } | null) => void;
 }
 
 const defaultFilm =
@@ -74,6 +87,11 @@ export const useTonalStore = create<TonalState>((set) => ({
   isApertureLocked: true,
   isShutterLocked: false,
   isIsoLocked: true,
+
+  calibrationMedianLog: null,
+
+  isSpotModeActive: false,
+  spotPosition: null,
 
   setFilm: (film) => set({ selectedFilm: film, isIsoLocked: true }),
   setISO: (ei) =>
@@ -111,4 +129,13 @@ export const useTonalStore = create<TonalState>((set) => ({
   setApertureLocked: (v) => set({ isApertureLocked: v }),
   setShutterLocked: (v) => set({ isShutterLocked: v }),
   setIsoLocked: (v) => set({ isIsoLocked: v }),
+
+  setCalibrationMedianLog: (v) => set({ calibrationMedianLog: v }),
+
+  toggleSpotMode: () =>
+    set((s) => ({
+      isSpotModeActive: !s.isSpotModeActive,
+      spotPosition: s.isSpotModeActive ? null : s.spotPosition,
+    })),
+  setSpotPosition: (p) => set({ spotPosition: p }),
 }));

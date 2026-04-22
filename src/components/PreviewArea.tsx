@@ -8,7 +8,9 @@ interface PreviewAreaProps {
   isPermissionDenied: boolean;
   onRequestCamera: () => void;
   isFrozen: boolean;
-  onToggleFreeze: () => void;
+  isSpotModeActive: boolean;
+  /** Called on tap when camera is ready. x/y normalized 0..1 within the visible preview. */
+  onTap: (x: number, y: number) => void;
   children?: React.ReactNode;
   overlay?: React.ReactNode;
 }
@@ -30,11 +32,11 @@ export function PreviewArea({
   isPermissionDenied,
   onRequestCamera,
   isFrozen,
-  onToggleFreeze,
+  isSpotModeActive,
+  onTap,
   children,
   overlay,
 }: PreviewAreaProps) {
-  // Fills parent's available height, derives width from aspect, never exceeds parent width.
   return (
     <div className="relative h-full w-full flex items-center justify-center">
       <div
@@ -83,10 +85,20 @@ export function PreviewArea({
         {isReady && (
           <button
             type="button"
-            onClick={onToggleFreeze}
-            aria-label={isFrozen ? 'Resume live reading' : 'Freeze current reading'}
-            aria-pressed={isFrozen}
-            className="absolute inset-0 z-10"
+            onClick={(e) => {
+              const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
+              const x = (e.clientX - rect.left) / rect.width;
+              const y = (e.clientY - rect.top) / rect.height;
+              onTap(Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y)));
+            }}
+            aria-label={
+              isSpotModeActive
+                ? 'Tap to place spot meter'
+                : isFrozen
+                  ? 'Resume live reading'
+                  : 'Freeze current reading'
+            }
+            className={`absolute inset-0 z-10 ${isSpotModeActive ? 'cursor-crosshair' : ''}`}
           />
         )}
 
@@ -101,6 +113,16 @@ export function PreviewArea({
             aria-hidden
           >
             HOLD
+          </div>
+        )}
+
+        {isReady && isSpotModeActive && (
+          <div
+            className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-accent text-white px-2.5 py-1 rounded-full text-[10px] font-bold pointer-events-none"
+            style={{ letterSpacing: '0.12em' }}
+            aria-hidden
+          >
+            SPOT
           </div>
         )}
       </div>

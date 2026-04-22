@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTonalStore } from './store/useTonalStore';
 import { findFormat } from './data/formats';
 import { FILM_STOCKS } from './data/filmStocks';
@@ -8,6 +8,7 @@ import { useFrameAnalysis } from './hooks/useFrameAnalysis';
 import { computeExposureRecommendation } from './hooks/useExposureRecommendation';
 import { PreviewArea } from './components/PreviewArea';
 import { ZoneMarker } from './components/ZoneMarker';
+import { SpotMarker } from './components/SpotMarker';
 import { ClippingOverlay } from './components/ClippingOverlay';
 import { EVDisplay } from './components/EVDisplay';
 import { ShadowWarningButton, HighlightWarningButton } from './components/WarningIcons';
@@ -41,6 +42,12 @@ export default function App() {
   const isApertureLocked = useTonalStore((s) => s.isApertureLocked);
   const isShutterLocked = useTonalStore((s) => s.isShutterLocked);
   const isIsoLocked = useTonalStore((s) => s.isIsoLocked);
+  const calibrationMedianLog = useTonalStore((s) => s.calibrationMedianLog);
+  const setCalibrationMedianLog = useTonalStore((s) => s.setCalibrationMedianLog);
+  const isSpotModeActive = useTonalStore((s) => s.isSpotModeActive);
+  const toggleSpotMode = useTonalStore((s) => s.toggleSpotMode);
+  const spotPosition = useTonalStore((s) => s.spotPosition);
+  const setSpotPosition = useTonalStore((s) => s.setSpotPosition);
 
   const fmt = findFormat(formatKey);
   const aspectOpt = fmt.aspects.find((a) => a.id === aspectId) ?? fmt.aspects[0];
@@ -80,9 +87,47 @@ export default function App() {
     shutterLocked: isShutterLocked,
     isoLocked: isIsoLocked,
     availableISOs,
+    calibrationMedianLog,
   });
 
   const zones = deriveZoneMarkers(film, expComp, analysis);
+
+  // Preview tap: spot meter places a spot; otherwise toggles freeze.
+  const handlePreviewTap = useCallback(
+    (x: number, y: number) => {
+      if (isSpotModeActive) {
+        setSpotPosition({ x, y });
+      } else {
+        toggleFrozen();
+      }
+    },
+    [isSpotModeActive, setSpotPosition, toggleFrozen],
+  );
+
+  // Spot meter reading: read the zone of the grid cell at the tapped position.
+  const spotZone = useMemo(() => {
+    if (!spotPosition || !analysis) return null;
+    const col = Math.max(
+      0,
+      Math.min(analysis.gridW - 1, Math.floor(spotPosition.x * analysis.gridW)),
+    );
+    const row = Math.max(
+      0,
+      Math.min(analysis.gridH - 1, Math.floor(spotPosition.y * analysis.gridH)),
+    );
+    const z = analysis.cellZones[row * analysis.gridW + col];
+    return z >= 0 ? z : null;
+  }, [spotPosition, analysis]);
+
+  const onToggleCalibration = useCallback(() => {
+    if (calibrationMedianLog != null) {
+      setCalibrationMedianLog(null);
+      return;
+    }
+    if (analysis?.medianLog != null && Number.isFinite(analysis.medianLog)) {
+      setCalibrationMedianLog(analysis.medianLog);
+    }
+  }, [calibrationMedianLog, analysis, setCalibrationMedianLog]);
 
   return (
     <div className="h-[100svh] w-full bg-white text-ink font-sans flex justify-center overflow-hidden">
@@ -104,6 +149,11 @@ export default function App() {
             sceneEV={rec.sceneEV}
             deltaStops={rec.deltaStops}
             mode={rec.mode}
+            isCalibrated={calibrationMedianLog != null}
+            canCalibrate={analysis?.medianLog != null}
+            onToggleCalibration={onToggleCalibration}
+            isSpotModeActive={isSpotModeActive}
+            onToggleSpotMode={toggleSpotMode}
           />
           <HighlightWarningButton />
         </header>
@@ -117,7 +167,8 @@ export default function App() {
             isPermissionDenied={isPermissionDenied}
             onRequestCamera={requestCamera}
             isFrozen={isFrozen}
-            onToggleFreeze={toggleFrozen}
+            isSpotModeActive={isSpotModeActive}
+            onTap={handlePreviewTap}
             overlay={
               <ClippingOverlay
                 analysis={analysis}
@@ -131,6 +182,9 @@ export default function App() {
             {zones.map((z) => (
               <ZoneMarker key={`${z.zone}-${z.label}`} {...z} />
             ))}
+            {spotPosition && (
+              <SpotMarker x={spotPosition.x} y={spotPosition.y} zone={spotZone} />
+            )}
           </PreviewArea>
         </section>
 

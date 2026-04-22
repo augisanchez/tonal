@@ -30,6 +30,8 @@ interface Args {
   shutterLocked: boolean;
   isoLocked: boolean;
   availableISOs: number[];
+  /** log2(linear luminance) anchor for middle gray. If null, uses theoretical 18%. */
+  calibrationMedianLog: number | null;
 }
 
 // ── Calibration ─────────────────────────────────────────────────────────
@@ -68,6 +70,7 @@ export function computeExposureRecommendation(args: Args): ExposureRecommendatio
     shutterLocked,
     isoLocked,
     availableISOs,
+    calibrationMedianLog,
   } = args;
 
   const userEV = Math.log2(aperture * aperture * shutter);
@@ -85,7 +88,9 @@ export function computeExposureRecommendation(args: Args): ExposureRecommendatio
     };
   }
 
-  const sceneEVAt100 = EV_ANCHOR_AT_ISO100 + (medianLog - LOG2_MIDDLE_GRAY);
+  // Use the user's calibration anchor when available; fall back to theoretical 18% gray.
+  const anchorLog = calibrationMedianLog ?? LOG2_MIDDLE_GRAY;
+  const sceneEVAt100 = EV_ANCHOR_AT_ISO100 + (medianLog - anchorLog);
 
   // ISO used for scene-EV computation — either the locked ISO or a default if auto
   const effectiveIso = iso;
